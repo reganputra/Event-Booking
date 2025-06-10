@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/gin-gonic/gin"
 	"go-rest-api/connection"
+	"go-rest-api/helper"
 	"go-rest-api/model"
 	"net/http"
 )
@@ -38,8 +39,7 @@ func main() {
 	})
 
 	// Start the server on port 8080
-	if err := router.Run(":3000"); err != nil {
-		panic(err)
-	}
+	err := router.Run(":3000")
+	helper.PanicIfError(err)
 
 }

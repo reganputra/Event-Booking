@@ -3,19 +3,18 @@ package connection
 import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
+	"go-rest-api/helper"
 )
 
-var db *sql.DB
+var DB *sql.DB
 
 func DbConnect() {
 	var err error
 
-	db, err = sql.Open("sqlite3", "event_booking.db")
-	if err != nil {
-		panic(err)
-	}
+	DB, err = sql.Open("sqlite3", "event_booking.db")
+	helper.PanicIfError(err)
 
-	db.SetMaxOpenConns(5)
+	DB.SetMaxOpenConns(5)
 	createTable()
 
 }
@@ -31,8 +30,6 @@ func createTable() {
 		user_id INTEGER
 	);
 	`
-	_, err := db.Exec(createEventsTable)
-	if err != nil {
-		panic(err)
-	}
+	_, err := DB.Exec(createEventsTable)
+	helper.PanicIfError(err)
 }
