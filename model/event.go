@@ -93,3 +93,19 @@ func (e *Event) UpdateEvent(ctx context.Context) error {
 
 	return nil
 }
+
+func (e *Event) DeleteEvent(ctx context.Context) error {
+	query := "DELETE FROM events WHERE id = ?"
+	stmt, err := connection.DB.PrepareContext(ctx, query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, e.Id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

@@ -48,9 +48,6 @@ func CreateEvent(c *gin.Context) {
 		return
 	}
 
-	createEvent.Id = 2
-	createEvent.UserIds = 2
-
 	err = createEvent.Save(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create event"})
@@ -88,4 +85,30 @@ func UpdateEvent(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Event updated successfully!", "event": updateEvent})
 
+}
+
+func DeleteEvent(c *gin.Context) {
+	id := c.Param("id")
+	eventId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+		return
+	}
+
+	event, err := model.GetEventById(c, eventId)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve event"})
+		}
+		return
+	}
+	err = event.DeleteEvent(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete event"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Event deleted successfully!"})
 }
