@@ -3,7 +3,6 @@ package model
 import (
 	"context"
 	"go-rest-api/connection"
-	"go-rest-api/helper"
 	"time"
 )
 
@@ -22,33 +21,59 @@ func (e *Event) Save(ctx context.Context) error {
 
 	insert := "INSERT INTO events (name, description, location, dateTime, user_id) VALUES (?, ?, ?, ?, ?)"
 	stmt, err := connection.DB.PrepareContext(ctx, insert)
-	helper.PanicIfError(err)
+	if err != nil {
+		return err
+	}
 	defer stmt.Close()
 
 	result, err := stmt.ExecContext(ctx, e.Name, e.Description, e.Location, e.Date, e.UserIds)
-	helper.PanicIfError(err)
+	if err != nil {
+		return err
+	}
 
 	lastInsertId, err := result.LastInsertId()
-	helper.PanicIfError(err)
+	if err != nil {
+		return err
+	}
 
 	e.Id = lastInsertId
-
 	return nil
 }
 
-func GetAllEvents(ctx context.Context) []Event {
+func GetAllEvents(ctx context.Context) ([]Event, error) {
+
 	query := "SELECT * FROM events"
 	rows, err := connection.DB.QueryContext(ctx, query)
-	helper.PanicIfError(err)
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
 
 	var events []Event
 	for rows.Next() {
 		var event Event
 		err := rows.Scan(&event.Id, &event.Name, &event.Description, &event.Location, &event.Date, &event.UserIds)
-		helper.PanicIfError(err)
+		if err != nil {
+			return nil, err
+		}
 		events = append(events, event)
 	}
 
-	return events
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return events, nil
+}
+
+func GetEventById(ctx context.Context, id int64) (*Event, error) {
+	query := "SELECT * FROM events WHERE id = ?"
+	row := connection.DB.QueryRowContext(ctx, query, id)
+
+	var event Event
+	err := row.Scan(&event.Id, &event.Name, &event.Description, &event.Location, &event.Date, &event.UserIds)
+	if err != nil {
+		return nil, err
+	}
+
+	return &event, nil
 }
