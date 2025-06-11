@@ -77,3 +77,19 @@ func GetEventById(ctx context.Context, id int64) (*Event, error) {
 
 	return &event, nil
 }
+
+func (e *Event) UpdateEvent(ctx context.Context) error {
+	update := "UPDATE events SET name = ?, description = ?, location = ?, dateTime = ? WHERE id = ?"
+	stmt, err := connection.DB.PrepareContext(ctx, update)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, e.Name, e.Description, e.Location, e.Date, e.Id)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
