@@ -48,8 +48,8 @@ func CreateEvent(c *gin.Context) {
 		return
 	}
 
-	createEvent.Id = 1
-	createEvent.UserIds = 1
+	createEvent.Id = 2
+	createEvent.UserIds = 2
 
 	err = createEvent.Save(c)
 	if err != nil {
@@ -58,4 +58,34 @@ func CreateEvent(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Event created successfully!", "event": createEvent})
+}
+
+func UpdateEvent(c *gin.Context) {
+	id := c.Param("id")
+	eventId, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
+		return
+	}
+
+	_, err = model.GetEventById(c, eventId)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve event"})
+		return
+	}
+
+	var updateEvent model.Event
+	err = c.ShouldBindJSON(&updateEvent)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not update event"})
+		return
+	}
+	updateEvent.Id = eventId
+	err = updateEvent.UpdateEvent(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update event"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Event updated successfully!", "event": updateEvent})
+
 }
