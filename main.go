@@ -21,7 +21,7 @@ func main() {
 	})
 
 	router.GET("/events", controllers.GetAllEvents)
-
+	router.GET("/events/:id", controllers.GetEventsById)
 	router.POST("/events", controllers.CreateEvent)
 
 	// Start the server on port 3000

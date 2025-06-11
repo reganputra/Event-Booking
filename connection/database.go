@@ -3,7 +3,6 @@ package connection
 import (
 	"database/sql"
 	_ "github.com/mattn/go-sqlite3"
-	"go-rest-api/helper"
 )
 
 var DB *sql.DB
@@ -12,14 +11,19 @@ func DbConnect() {
 	var err error
 
 	DB, err = sql.Open("sqlite3", "event_booking.db")
-	helper.PanicIfError(err)
+	if err != nil {
+		panic(err)
+	}
 
 	DB.SetMaxOpenConns(5)
-	createTable()
+	err = createTable()
+	if err != nil {
+		panic(err)
+	}
 
 }
 
-func createTable() {
+func createTable() error {
 	createEventsTable := `
 	CREATE TABLE IF NOT EXISTS events (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,5 +35,5 @@ func createTable() {
 	);
 	`
 	_, err := DB.Exec(createEventsTable)
-	helper.PanicIfError(err)
+	return err
 }
