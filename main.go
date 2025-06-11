@@ -20,12 +20,15 @@ func main() {
 		})
 	})
 
-	// Router
+	// Router for event-related operations
 	router.GET("/events", controllers.GetAllEvents)
 	router.GET("/events/:id", controllers.GetEventsById)
 	router.POST("/events", controllers.CreateEvent)
 	router.PUT("/events/:id", controllers.UpdateEvent)
 	router.DELETE("/events/:id", controllers.DeleteEvent)
+
+	// Router for user-related operations
+	router.POST("/users/register", controllers.RegisterUser)
 
 	// Start the server on port 3000
 	err := router.Run(":3000")
