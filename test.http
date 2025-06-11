@@ -1,0 +1,29 @@
+
+### GET all events
+GET http://localhost:3000/events
+
+### POST Example
+POST http://localhost:3000/events
+content-type: application/json
+
+{
+  "name": "Robin",
+  "description": "This is a Robin event",
+  "location": "123 Test St, Test City, TC 12345",
+  "dateTime": "2023-10-01T12:00:00Z"
+}
+
+### GET event by ID
+GET http://localhost:3000/events/2
+
+
+### PUT update event by ID
+PUT http://localhost:3000/events/3
+content-type: application/json
+
+{
+  "name": "Updated Event",
+  "description": "This is an updated event",
+  "location": "456 Updated St, Updated City, UC 67890",
+  "dateTime": "2023-11-01T12:00:00Z"
+}
