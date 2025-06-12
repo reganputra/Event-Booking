@@ -3,6 +3,7 @@ package controllers
 import (
 	"github.com/gin-gonic/gin"
 	"go-rest-api/model"
+	"go-rest-api/response"
 	"net/http"
 )
 
@@ -19,5 +20,11 @@ func RegisterUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create user"})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully!", "user": user})
+
+	userResponse := response.UserResponse{
+		Id:    user.Id,
+		Email: user.Email,
+	}
+
+	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully!", "user": userResponse})
 }

@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 	"go-rest-api/connection"
+	"go-rest-api/utils"
 )
 
 type User struct {
@@ -20,7 +21,7 @@ func (u *User) CreateUser(ctx context.Context) error {
 
 	defer stmt.Close()
 
-	result, err := stmt.ExecContext(ctx, u.Email, u.Password)
+	result, err := stmt.ExecContext(ctx, u.Email, utils.HashPassword(u.Password))
 	if err != nil {
 		panic(err)
 	}
