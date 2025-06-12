@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go-rest-api/model"
 	"go-rest-api/response"
+	"go-rest-api/utils"
 	"net/http"
 )
 
@@ -47,6 +48,12 @@ func LoginUser(c *gin.Context) {
 		Id:    user.Id,
 		Email: user.Email,
 	}
+	// Generate JWT token
+	token, err := utils.GenerateToken(user.Email, user.Id)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
+		return
+	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "User logged in successfully!", "user": userResponse})
+	c.JSON(http.StatusOK, gin.H{"message": "User logged in successfully!", "token": token, "user": userResponse})
 }

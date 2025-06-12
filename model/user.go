@@ -34,11 +34,11 @@ func (u *User) CreateUser(ctx context.Context) error {
 }
 
 func (u *User) ValidateUser(ctx context.Context) error {
-	query := "SELECT password FROM users WHERE email = ?"
+	query := "SELECT id, password FROM users WHERE email = ?"
 	row := connection.DB.QueryRowContext(ctx, query, u.Email)
 
 	var retrievedPassword string
-	err := row.Scan(&retrievedPassword)
+	err := row.Scan(&u.Id, &retrievedPassword)
 	if err != nil {
 		return errors.New("user not found")
 	}
