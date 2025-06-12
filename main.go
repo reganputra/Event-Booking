@@ -29,6 +29,7 @@ func main() {
 
 	// Router for user-related operations
 	router.POST("/users/register", controllers.RegisterUser)
+	router.POST("/users/login", controllers.LoginUser)
 
 	// Start the server on port 3000
 	err := router.Run(":3000")

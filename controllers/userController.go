@@ -28,3 +28,25 @@ func RegisterUser(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, gin.H{"message": "User created successfully!", "user": userResponse})
 }
+
+func LoginUser(c *gin.Context) {
+	var user model.User
+	err := c.ShouldBindJSON(&user)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input data"})
+		return
+	}
+
+	err = user.ValidateUser(c)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	userResponse := response.UserResponse{
+		Id:    user.Id,
+		Email: user.Email,
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "User logged in successfully!", "user": userResponse})
+}

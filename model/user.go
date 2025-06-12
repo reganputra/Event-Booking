@@ -2,6 +2,7 @@ package model
 
 import (
 	"context"
+	"errors"
 	"go-rest-api/connection"
 	"go-rest-api/utils"
 )
@@ -30,4 +31,22 @@ func (u *User) CreateUser(ctx context.Context) error {
 
 	u.Id = userId
 	return err
+}
+
+func (u *User) ValidateUser(ctx context.Context) error {
+	query := "SELECT password FROM users WHERE email = ?"
+	row := connection.DB.QueryRowContext(ctx, query, u.Email)
+
+	var retrievedPassword string
+	err := row.Scan(&retrievedPassword)
+	if err != nil {
+		return errors.New("user not found")
+	}
+
+	passwordIsValid := utils.CheckPasswordHash(u.Password, retrievedPassword)
+	if !passwordIsValid {
+		return errors.New("invalid Credentials")
+	}
+	u.Password = retrievedPassword
+	return nil
 }
