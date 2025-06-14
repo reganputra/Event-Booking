@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"go-rest-api/model"
+	"go-rest-api/utils"
 	"net/http"
 	"strconv"
 )
@@ -41,8 +42,21 @@ func GetEventsById(c *gin.Context) {
 }
 
 func CreateEvent(c *gin.Context) {
+
+	token := c.Request.Header.Get("Authorization")
+	if token == "" {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token is required"})
+		return
+	}
+
+	err := utils.ValidateToken(token)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		return
+	}
+
 	var createEvent model.Event
-	err := c.ShouldBindJSON(&createEvent)
+	err = c.ShouldBindJSON(&createEvent)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
