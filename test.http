@@ -1,31 +1,62 @@
+### Health Check
+GET http://localhost:3000/healthcheck
 
 ### GET all events
 GET http://localhost:3000/events
 
-### POST Example
-POST http://localhost:3000/events
-content-type: application/json
+### GET event by ID
+GET http://localhost:3000/events/
+
+### Register a new user
+POST http://localhost:3000/users/register
+Content-Type: application/json
 
 {
-  "name": "Robin",
-  "description": "This is a Robin event",
-  "location": "123 Test St, Test City, TC 12345",
-  "dateTime": "2023-10-01T12:00:00Z"
+  "email": "user@example.com",
+  "password": "password123"
 }
 
-### GET event by ID
-GET http://localhost:3000/events/2
+### Login user
+POST http://localhost:3000/users/login
+Content-Type: application/json
 
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
 
-### PUT update event by ID
-PUT http://localhost:3000/events/3
-content-type: application/json
+### Create a new event (Protected - requires authentication)
+POST http://localhost:3000/events
+Content-Type: application/json
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NDk5MjgxNzEsInVzZXJJZCI6MX0.Yb74kCv0jVrBuknygQ84HFJf-MiHivpuPHIzTtMNN1o
+
+{
+  "name": "New Event",
+  "description": "This is a new event description",
+  "location": "123 Event St, Event City, EC 12345",
+  "dateTime": "2023-12-01T15:00:00Z"
+}
+
+### Update an event (Protected - requires authentication)
+PUT http://localhost:3000/events/1
+Content-Type: application/json
+Authorization:
 
 {
   "name": "Updated Event",
-  "description": "This is an updated event",
+  "description": "This is an updated event description",
   "location": "456 Updated St, Updated City, UC 67890",
-  "dateTime": "2023-11-01T12:00:00Z"
+  "dateTime": "2023-12-15T16:00:00Z"
 }
-### DELETE event by ID
-DELETE http://localhost:3000/events/4
+
+### Delete an event (Protected - requires authentication)
+DELETE http://localhost:3000/events/1
+Authorization:
+
+### Register for an event (Protected - requires authentication)
+POST http://localhost:3000/events/2/register
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NDk5MjgxNzEsInVzZXJJZCI6MX0.Yb74kCv0jVrBuknygQ84HFJf-MiHivpuPHIzTtMNN1o
+
+### Cancel registration for an event (Protected - requires authentication)
+DELETE http://localhost:3000/events/1/register
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NDk5MjgxNzEsInVzZXJJZCI6MX0.Yb74kCv0jVrBuknygQ84HFJf-MiHivpuPHIzTtMNN1o
