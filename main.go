@@ -33,6 +33,8 @@ func main() {
 		protectedRoutes.POST("/events", controllers.CreateEvent)
 		protectedRoutes.PUT("/events/:id", controllers.UpdateEvent)
 		protectedRoutes.DELETE("/events/:id", controllers.DeleteEvent)
+		protectedRoutes.POST("/events/:id/register")
+		protectedRoutes.DELETE("/events/:id/register")
 	}
 
 	// Start the server on port 3000
