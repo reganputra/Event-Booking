@@ -109,3 +109,33 @@ func (e *Event) DeleteEvent(ctx context.Context) error {
 
 	return nil
 }
+
+func (e *Event) RegisterEvent(ctx context.Context, userId int64) error {
+	insert := "INSERT INTO registrations (event_id, user_id) VALUES (?, ?)"
+	stmt, err := connection.DB.PrepareContext(ctx, insert)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, e.Id, userId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (e *Event) CancelRegistration(ctx context.Context, userId int64) error {
+	query := "DELETE FROM registrations WHERE event_id = ? AND user_id = ?"
+	stmt, err := connection.DB.PrepareContext(ctx, query)
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+
+	_, err = stmt.ExecContext(ctx, e.Id, userId)
+	if err != nil {
+		return err
+	}
+	return nil
+}
