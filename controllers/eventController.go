@@ -5,7 +5,6 @@ import (
 	"errors"
 	"github.com/gin-gonic/gin"
 	"go-rest-api/model"
-	"go-rest-api/utils"
 	"net/http"
 	"strconv"
 )
@@ -43,25 +42,15 @@ func GetEventsById(c *gin.Context) {
 
 func CreateEvent(c *gin.Context) {
 
-	token := c.Request.Header.Get("Authorization")
-	if token == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token is required"})
-		return
-	}
-
-	userId, err := utils.ValidateToken(token)
-	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
-		return
-	}
+	userId, _ := c.Get("userId")
 
 	var createEvent model.Event
-	err = c.ShouldBindJSON(&createEvent)
+	err := c.ShouldBindJSON(&createEvent)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	createEvent.UserIds = userId
+	createEvent.UserIds = userId.(int64)
 	err = createEvent.Save(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create event"})
@@ -72,6 +61,9 @@ func CreateEvent(c *gin.Context) {
 }
 
 func UpdateEvent(c *gin.Context) {
+
+	userId, _ := c.Get("userId")
+
 	id := c.Param("id")
 	eventId, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
@@ -79,9 +71,18 @@ func UpdateEvent(c *gin.Context) {
 		return
 	}
 
-	_, err = model.GetEventById(c, eventId)
+	existingEvent, err := model.GetEventById(c, eventId)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve event"})
+		if errors.Is(err, sql.ErrNoRows) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Event not found"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve event"})
+		}
+		return
+	}
+
+	if existingEvent.UserIds != userId.(int64) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to update this event"})
 		return
 	}
 
@@ -91,7 +92,9 @@ func UpdateEvent(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Could not update event"})
 		return
 	}
+
 	updateEvent.Id = eventId
+	updateEvent.UserIds = userId.(int64)
 	err = updateEvent.UpdateEvent(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update event"})
@@ -102,6 +105,9 @@ func UpdateEvent(c *gin.Context) {
 }
 
 func DeleteEvent(c *gin.Context) {
+
+	userId, _ := c.Get("userId")
+
 	id := c.Param("id")
 	eventId, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
@@ -118,6 +124,12 @@ func DeleteEvent(c *gin.Context) {
 		}
 		return
 	}
+
+	if event.UserIds != userId.(int64) {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You don't have permission to delete this event"})
+		return
+	}
+
 	err = event.DeleteEvent(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete event"})

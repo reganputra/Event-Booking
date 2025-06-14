@@ -5,6 +5,7 @@ import (
 	"go-rest-api/connection"
 	"go-rest-api/controllers"
 	"go-rest-api/helper"
+	"go-rest-api/middleware"
 	"net/http"
 )
 
@@ -20,16 +21,19 @@ func main() {
 		})
 	})
 
-	// Router for event-related operations
+	// Public routes
 	router.GET("/events", controllers.GetAllEvents)
 	router.GET("/events/:id", controllers.GetEventsById)
-	router.POST("/events", controllers.CreateEvent)
-	router.PUT("/events/:id", controllers.UpdateEvent)
-	router.DELETE("/events/:id", controllers.DeleteEvent)
-
-	// Router for user-related operations
 	router.POST("/users/register", controllers.RegisterUser)
 	router.POST("/users/login", controllers.LoginUser)
+
+	protectedRoutes := router.Group("/")
+	protectedRoutes.Use(middleware.AuthMiddleware())
+	{
+		protectedRoutes.POST("/events", controllers.CreateEvent)
+		protectedRoutes.PUT("/events/:id", controllers.UpdateEvent)
+		protectedRoutes.DELETE("/events/:id", controllers.DeleteEvent)
+	}
 
 	// Start the server on port 3000
 	err := router.Run(":3000")
