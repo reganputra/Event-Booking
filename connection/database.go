@@ -47,5 +47,18 @@ CREATE TABLE IF NOT EXISTS users (
 	);
 	`
 	_, err = DB.Exec(createEventsTable)
+	if err != nil {
+		return err
+	}
+
+	createRegistrationsTable := `
+    CREATE TABLE IF NOT EXISTS registrations (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        event_id INTEGER,
+        user_id INTEGER,
+        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );`
+	_, err = DB.Exec(createRegistrationsTable)
 	return err
 }
