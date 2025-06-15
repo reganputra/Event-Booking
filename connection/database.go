@@ -5,32 +5,31 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-var DB *sql.DB
+//var DB *sql.DB
 
-func DbConnect() {
+func DbConnect() *sql.DB {
 	var err error
-
-	DB, err = sql.Open("sqlite3", "event_booking.db")
+	db, err := sql.Open("sqlite3", "event_booking.db")
 	if err != nil {
 		panic(err)
 	}
-
-	DB.SetMaxOpenConns(5)
-	err = createTable()
+	db.SetMaxOpenConns(5)
+	err = createTable(db)
 	if err != nil {
 		panic(err)
 	}
+	return db
 
 }
 
-func createTable() error {
+func createTable(db *sql.DB) error {
 	createUsersTable := `
 CREATE TABLE IF NOT EXISTS users (
     	id INTEGER PRIMARY KEY AUTOINCREMENT,
     	email TEXT NOT NULL UNIQUE,
     	password TEXT NOT NULL
 );`
-	_, err := DB.Exec(createUsersTable)
+	_, err := db.Exec(createUsersTable)
 	if err != nil {
 		return err
 	}
@@ -46,7 +45,7 @@ CREATE TABLE IF NOT EXISTS users (
 		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 	);
 	`
-	_, err = DB.Exec(createEventsTable)
+	_, err = db.Exec(createEventsTable)
 	if err != nil {
 		return err
 	}
@@ -59,6 +58,6 @@ CREATE TABLE IF NOT EXISTS users (
         FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );`
-	_, err = DB.Exec(createRegistrationsTable)
+	_, err = db.Exec(createRegistrationsTable)
 	return err
 }
