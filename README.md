@@ -13,7 +13,6 @@ A RESTful API built with Go and Gin framework for managing events and user regis
   - [Event Management](#event-management)
   - [Event Registration](#event-registration)
 - [Authentication](#authentication)
-- [Example Usage](#example-usage)
 
 ## Features
 
