@@ -5,7 +5,7 @@ GET http://localhost:3000/healthcheck
 GET http://localhost:3000/events
 
 ### GET event by ID
-GET http://localhost:3000/events/
+GET http://localhost:3000/events/1
 
 ### Register a new user
 POST http://localhost:3000/users/register
@@ -28,7 +28,7 @@ Content-Type: application/json
 ### Create a new event (Protected - requires authentication)
 POST http://localhost:3000/events
 Content-Type: application/json
-Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NDk5MjgxNzEsInVzZXJJZCI6MX0.Yb74kCv0jVrBuknygQ84HFJf-MiHivpuPHIzTtMNN1o
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NDk5ODU2MjQsInVzZXJJZCI6MX0.6Fzuox6niPOlDqhZJFvANI1t_sVk81gKnATcqJmco0I
 
 {
   "name": "New Event",
@@ -50,8 +50,8 @@ Authorization:
 }
 
 ### Delete an event (Protected - requires authentication)
-DELETE http://localhost:3000/events/1
-Authorization:
+DELETE http://localhost:3000/events/2
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NDk5ODU2MjQsInVzZXJJZCI6MX0.6Fzuox6niPOlDqhZJFvANI1t_sVk81gKnATcqJmco0I
 
 ### Register for an event (Protected - requires authentication)
 POST http://localhost:3000/events/2/register

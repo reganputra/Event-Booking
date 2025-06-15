@@ -16,14 +16,17 @@ func main() {
 	db := connection.DbConnect()
 	defer db.Close()
 
-	// Initialize the event repository
+	// Initialize the repository
 	eventRepo := repository.NewEventRepository(db)
+	userRepo := repository.NewUserRepository(db)
 
-	// Intialize the event service
+	// Initialize the service
 	eventService := services.NewEventService(eventRepo)
+	userService := services.NewUserService(userRepo)
 
-	// Initialize the event controller
+	// Initialize the controller
 	eventController := controllers.NewEventController(eventService)
+	userController := controllers.NewUserController(userService)
 
 	router := gin.Default()
 
@@ -37,8 +40,8 @@ func main() {
 	// Public routes
 	router.GET("/events", eventController.GetAllEvents)
 	router.GET("/events/:id", eventController.GetEventByID)
-	router.POST("/users/register", controllers.RegisterUser)
-	router.POST("/users/login", controllers.LoginUser)
+	router.POST("/users/register", userController.RegisterUser)
+	router.POST("/users/login", userController.LoginUser)
 
 	protectedRoutes := router.Group("/")
 	protectedRoutes.Use(middleware.AuthMiddleware())
