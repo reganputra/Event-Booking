@@ -11,8 +11,8 @@ type EventService interface {
 	CreateEvent(ctx context.Context, event *model.Event) error
 	GetAllEvents(ctx context.Context) ([]model.Event, error)
 	GetEventByID(ctx context.Context, id int64) (*model.Event, error)
-	UpdateEvent(ctx context.Context, event *model.Event, userID int64) error
-	DeleteEvent(ctx context.Context, id int64, userID int64) error
+	UpdateEvent(ctx context.Context, event *model.Event, userID int64, userRole string) error
+	DeleteEvent(ctx context.Context, id int64, userID int64, userRole string) error
 	RegisterForEvent(ctx context.Context, eventID, userID int64) error
 	CancelEventRegistration(ctx context.Context, eventID, userID int64) error
 }
@@ -39,26 +39,26 @@ func (s *eventService) GetEventByID(ctx context.Context, id int64) (*model.Event
 	return s.eventRepository.GetEventById(ctx, id)
 }
 
-func (s *eventService) UpdateEvent(ctx context.Context, event *model.Event, userID int64) error {
+func (s *eventService) UpdateEvent(ctx context.Context, event *model.Event, userID int64, userRole string) error {
 	existingEvent, err := s.eventRepository.GetEventById(ctx, event.Id)
 	if err != nil {
 		return err
 	}
 
-	if existingEvent.UserIds != userID {
+	if existingEvent.UserIds != userID && userRole != "admin" {
 		return errors.New("unauthorized: you don't have permission to update this event")
 	}
 
 	return s.eventRepository.Update(ctx, event)
 }
 
-func (s *eventService) DeleteEvent(ctx context.Context, id int64, userID int64) error {
+func (s *eventService) DeleteEvent(ctx context.Context, id int64, userID int64, userRole string) error {
 	existingEvent, err := s.eventRepository.GetEventById(ctx, id)
 	if err != nil {
 		return err
 	}
 
-	if existingEvent.UserIds != userID {
+	if existingEvent.UserIds != userID && userRole != "admin" {
 		return errors.New("unauthorized: you don't have permission to delete this event")
 	}
 

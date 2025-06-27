@@ -69,6 +69,7 @@ func (c *EventController) GetEventByID(ctx *gin.Context) {
 
 func (c *EventController) UpdateEvent(ctx *gin.Context) {
 	userID, _ := ctx.Get("userId")
+	userRole, _ := ctx.Get("userRole")
 
 	id := ctx.Param("id")
 	eventID, err := strconv.ParseInt(id, 10, 64)
@@ -85,7 +86,7 @@ func (c *EventController) UpdateEvent(ctx *gin.Context) {
 	}
 
 	event.Id = eventID
-	err = c.eventService.UpdateEvent(ctx, &event, userID.(int64))
+	err = c.eventService.UpdateEvent(ctx, &event, userID.(int64), userRole.(string))
 	if err != nil {
 		if err.Error() == "unauthorized: you don't have permission to update this event" {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -100,6 +101,7 @@ func (c *EventController) UpdateEvent(ctx *gin.Context) {
 
 func (c *EventController) DeleteEvent(ctx *gin.Context) {
 	userID, _ := ctx.Get("userId")
+	userRole, _ := ctx.Get("userRole")
 
 	id := ctx.Param("id")
 	eventID, err := strconv.ParseInt(id, 10, 64)
@@ -108,7 +110,7 @@ func (c *EventController) DeleteEvent(ctx *gin.Context) {
 		return
 	}
 
-	err = c.eventService.DeleteEvent(ctx, eventID, userID.(int64))
+	err = c.eventService.DeleteEvent(ctx, eventID, userID.(int64), userRole.(string))
 	if err != nil {
 		if err.Error() == "unauthorized: you don't have permission to delete this event" {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
