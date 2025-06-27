@@ -27,7 +27,8 @@ func createTable(db *sql.DB) error {
 CREATE TABLE IF NOT EXISTS users (
     	id INTEGER PRIMARY KEY AUTOINCREMENT,
     	email TEXT NOT NULL UNIQUE,
-    	password TEXT NOT NULL
+    	password TEXT NOT NULL,
+    	 role TEXT NOT NULL DEFAULT 'user'
 );`
 	_, err := db.Exec(createUsersTable)
 	if err != nil {

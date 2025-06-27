@@ -23,14 +23,15 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Validate the token
-		userId, err := utils.ValidateToken(token)
+		userId, role, err := utils.ValidateToken(token)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			return
 		}
 
-		// Set the user ID in the context for use in handlers
+		// Set the user ID and role in the context for use in handlers
 		c.Set("userId", userId)
+		c.Set("role", role)
 
 		// Continue to the next handler
 		c.Next()
