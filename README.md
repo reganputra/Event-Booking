@@ -13,7 +13,6 @@ A RESTful API built with Go and Gin framework for managing events and user regis
   - [Event Management](#event-management)
   - [Event Registration](#event-registration)
 - [Authentication](#authentication)
-- [Example Usage](#example-usage)
 
 ## Features
 
@@ -192,40 +191,3 @@ The API uses JWT (JSON Web Tokens) for authentication. To access protected endpo
 2. Include the token in the Authorization header for protected requests:
    - `Authorization: Bearer <token>` or
    - `Authorization: <token>`
-
-## Example Usage
-
-Here are some example API calls using curl:
-
-### Register a new user
-```bash
-curl -X POST http://localhost:3000/users/register \
-  -H "Content-Type: application/json" \
-  -d '{"email": "user@example.com", "password": "password123"}'
-```
-
-### Login
-```bash
-curl -X POST http://localhost:3000/users/login \
-  -H "Content-Type: application/json" \
-  -d '{"email": "user@example.com", "password": "password123"}'
-```
-
-### Create a new event (with authentication)
-```bash
-curl -X POST http://localhost:3000/events \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <your-token-here>" \
-  -d '{"name": "New Event", "description": "This is a new event description", "location": "123 Event St, Event City, EC 12345", "date": "2023-12-01T15:00:00Z"}'
-```
-
-### Get all events
-```bash
-curl -X GET http://localhost:3000/events
-```
-
-### Register for an event
-```bash
-curl -X POST http://localhost:3000/events/1/register \
-  -H "Authorization: Bearer <your-token-here>"
-```
