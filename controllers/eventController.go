@@ -19,7 +19,12 @@ func NewEventController(eventService services.EventService) *EventController {
 }
 
 func (c *EventController) CreateEvent(ctx *gin.Context) {
-	userID, _ := ctx.Get("userId")
+	userIDVal, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context. Authentication issue."})
+		return
+	}
+	userID := userIDVal.(int64)
 
 	var event model.Event
 	err := ctx.ShouldBindJSON(&event)
@@ -28,7 +33,7 @@ func (c *EventController) CreateEvent(ctx *gin.Context) {
 		return
 	}
 
-	event.UserIds = userID.(int64)
+	event.UserIds = userID
 	err = c.eventService.CreateEvent(ctx, &event)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create event"})
@@ -68,8 +73,18 @@ func (c *EventController) GetEventByID(ctx *gin.Context) {
 }
 
 func (c *EventController) UpdateEvent(ctx *gin.Context) {
-	userID, _ := ctx.Get("userId")
-	userRole, _ := ctx.Get("userRole")
+	userIDVal, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context. Authentication issue."})
+		return
+	}
+	userID := userIDVal.(int64)
+	userRoleVal, exists := ctx.Get("userRole")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User role not found in context. Authentication issue."})
+		return
+	}
+	userRole := userRoleVal.(string)
 
 	id := ctx.Param("id")
 	eventID, err := strconv.ParseInt(id, 10, 64)
@@ -86,7 +101,7 @@ func (c *EventController) UpdateEvent(ctx *gin.Context) {
 	}
 
 	event.Id = eventID
-	err = c.eventService.UpdateEvent(ctx, &event, userID.(int64), userRole.(string))
+	err = c.eventService.UpdateEvent(ctx, &event, userID, userRole)
 	if err != nil {
 		if err.Error() == "unauthorized: you don't have permission to update this event" {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -100,8 +115,18 @@ func (c *EventController) UpdateEvent(ctx *gin.Context) {
 }
 
 func (c *EventController) DeleteEvent(ctx *gin.Context) {
-	userID, _ := ctx.Get("userId")
-	userRole, _ := ctx.Get("userRole")
+	userIDVal, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context. Authentication issue."})
+		return
+	}
+	userID := userIDVal.(int64)
+	userRoleVal, exists := ctx.Get("userRole")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User role not found in context. Authentication issue."})
+		return
+	}
+	userRole := userRoleVal.(string)
 
 	id := ctx.Param("id")
 	eventID, err := strconv.ParseInt(id, 10, 64)
@@ -110,7 +135,7 @@ func (c *EventController) DeleteEvent(ctx *gin.Context) {
 		return
 	}
 
-	err = c.eventService.DeleteEvent(ctx, eventID, userID.(int64), userRole.(string))
+	err = c.eventService.DeleteEvent(ctx, eventID, userID, userRole)
 	if err != nil {
 		if err.Error() == "unauthorized: you don't have permission to delete this event" {
 			ctx.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
@@ -126,7 +151,13 @@ func (c *EventController) DeleteEvent(ctx *gin.Context) {
 }
 
 func (c *EventController) RegisterForEvent(ctx *gin.Context) {
-	userID := ctx.GetInt64("userId")
+	userIDVal, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context. Authentication issue."})
+		return
+	}
+	userID := userIDVal.(int64)
+
 	id := ctx.Param("id")
 	eventID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
@@ -144,7 +175,12 @@ func (c *EventController) RegisterForEvent(ctx *gin.Context) {
 }
 
 func (c *EventController) CancelEventRegistration(ctx *gin.Context) {
-	userID := ctx.GetInt64("userId")
+	userIDVal, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context. Authentication issue."})
+		return
+	}
+	userID := userIDVal.(int64)
 	id := ctx.Param("id")
 	eventID, err := strconv.ParseInt(id, 10, 64)
 	if err != nil {
