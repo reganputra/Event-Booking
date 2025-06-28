@@ -53,6 +53,16 @@ func main() {
 		protectedRoutes.DELETE("/events/:id/register", eventController.CancelEventRegistration)
 	}
 
+	adminRoutes := router.Group("/admin")
+	adminRoutes.Use(middleware.AuthMiddleware())
+	adminRoutes.Use(middleware.AuthorizeRole("admin"))
+	{
+		adminRoutes.GET("/users", userController.GetAllUser)
+		adminRoutes.GET("/users/:id", userController.GetUserByID)
+		adminRoutes.PUT("/users/:id", userController.UpdateUser)
+		adminRoutes.DELETE("/users/:id", userController.DeleteUser)
+	}
+
 	// Start the server on port 3000
 	err := router.Run(":3000")
 	helper.PanicIfError(err)
