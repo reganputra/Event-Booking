@@ -12,8 +12,8 @@ POST http://localhost:3000/users/register
 Content-Type: application/json
 
 {
-  "email": "user@example.com",
-  "password": "password123"
+  "email": "user2@example.com",
+  "password": "userpassword2"
 }
 
 ### Login user
@@ -21,18 +21,18 @@ POST http://localhost:3000/users/login
 Content-Type: application/json
 
 {
-  "email": "user@example.com",
-  "password": "password123"
+  "email": "admin@example.com",
+  "password": "adminpassword"
 }
 
 ### Create a new event (Protected - requires authentication)
 POST http://localhost:3000/events
 Content-Type: application/json
-Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NDk5ODU2MjQsInVzZXJJZCI6MX0.6Fzuox6niPOlDqhZJFvANI1t_sVk81gKnATcqJmco0I
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwiZXhwIjoxNzUxMDc1NDY3LCJyb2xlIjoiYWRtaW4iLCJ1c2VySWQiOjF9.o8gsfgwd8DRoT29fURm7LzSccoY902-64MkCKL4ePCc
 
 {
-  "name": "New Event",
-  "description": "This is a new event description",
+  "name": "New Event 2",
+  "description": "This is a 2nd event description",
   "location": "123 Event St, Event City, EC 12345",
   "dateTime": "2023-12-01T15:00:00Z"
 }
@@ -40,7 +40,7 @@ Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBs
 ### Update an event (Protected - requires authentication)
 PUT http://localhost:3000/events/1
 Content-Type: application/json
-Authorization:
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwiZXhwIjoxNzUxMDc2MTk1LCJyb2xlIjoiYWRtaW4iLCJ1c2VySWQiOjF9.fxARKpuxbe3_gZw8-aPY8ADNxoLk-Db--O3vQCYnPaM
 
 {
   "name": "Updated Event",
@@ -50,13 +50,37 @@ Authorization:
 }
 
 ### Delete an event (Protected - requires authentication)
-DELETE http://localhost:3000/events/2
-Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NDk5ODU2MjQsInVzZXJJZCI6MX0.6Fzuox6niPOlDqhZJFvANI1t_sVk81gKnATcqJmco0I
+DELETE http://localhost:3000/events/1
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NTEwNzY1MDcsInJvbGUiOiJ1c2VyIiwidXNlcklkIjoyfQ.nAlEH3hq5YlJt_67vcUF_hmZGWrQvcYOl8EONu9viE8
 
 ### Register for an event (Protected - requires authentication)
-POST http://localhost:3000/events/2/register
-Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NDk5MjgxNzEsInVzZXJJZCI6MX0.Yb74kCv0jVrBuknygQ84HFJf-MiHivpuPHIzTtMNN1o
+POST http://localhost:3000/events/1/register
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NTEwNzY1MDcsInJvbGUiOiJ1c2VyIiwidXNlcklkIjoyfQ.nAlEH3hq5YlJt_67vcUF_hmZGWrQvcYOl8EONu9viE8
 
 ### Cancel registration for an event (Protected - requires authentication)
 DELETE http://localhost:3000/events/1/register
 Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NDk5MjgxNzEsInVzZXJJZCI6MX0.Yb74kCv0jVrBuknygQ84HFJf-MiHivpuPHIzTtMNN1o
+
+
+### Admin: Get all users (Protected - requires admin authentication)
+GET http://localhost:3000/admin/users
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwiZXhwIjoxNzUxMDc2OTMzLCJyb2xlIjoiYWRtaW4iLCJ1c2VySWQiOjF9.2gw4UkIUyvEkamitoCaSTEUvJoXf4kck6ebdIfGFFds
+
+### Admin: Get user by ID (Protected - requires admin authentication)
+GET http://localhost:3000/admin/users/1
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwiZXhwIjoxNzUxMDc2OTMzLCJyb2xlIjoiYWRtaW4iLCJ1c2VySWQiOjF9.2gw4UkIUyvEkamitoCaSTEUvJoXf4kck6ebdIfGFFds
+
+### Admin: Update a user (Protected - requires admin authentication)
+PUT http://localhost:3000/admin/users/2
+Content-Type: application/json
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwiZXhwIjoxNzUxMDc3MTA2LCJyb2xlIjoiYWRtaW4iLCJ1c2VySWQiOjF9.AVr-soKOOfwj7d1yv8_yVQlrbTlPnSsCbIAJIFUxAm0
+
+{
+    "email": "updateuser@mail.com",
+    "role": "user"
+
+}
+
+### Admin: Delete a user (Protected - requires admin authentication)
+DELETE http://localhost:3000/admin/users/3
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwiZXhwIjoxNzUxMDc3MTA2LCJyb2xlIjoiYWRtaW4iLCJ1c2VySWQiOjF9.AVr-soKOOfwj7d1yv8_yVQlrbTlPnSsCbIAJIFUxAm0

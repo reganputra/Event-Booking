@@ -1,6 +1,6 @@
 # Event Booking REST API
 
-A RESTful API built with Go and Gin framework for managing events and user registrations. This API allows users to create, view, update, and delete events, as well as register for events.
+A RESTful API built with Go and Gin framework for managing events and user registrations. This API allows users to create, view, update, and delete events, as well as register for events. Now supports user roles (admin and user) for enhanced access control.
 
 ## Table of Contents
 
@@ -12,14 +12,17 @@ A RESTful API built with Go and Gin framework for managing events and user regis
   - [User Management](#user-management)
   - [Event Management](#event-management)
   - [Event Registration](#event-registration)
-- [Authentication](#authentication)
+  - [Admin Endpoints](#admin-endpoints)
+- [Authentication & Authorization](#authentication--authorization)
 
 ## Features
 
 - User registration and authentication with JWT
+- User roles: `user` and `admin`
+- Admin-only endpoints for user management
 - CRUD operations for events
 - Event registration functionality
-- Protected routes with middleware authentication
+- Protected routes with middleware authentication and role-based authorization
 - SQLite database for data storage
 
 ## Technologies
@@ -70,7 +73,8 @@ A RESTful API built with Go and Gin framework for managing events and user regis
     {
       "user": {
         "id": 1,
-        "email": "user@example.com"
+        "email": "user@example.com",
+        "role": "user"
       }
     }
     ```
@@ -88,7 +92,8 @@ A RESTful API built with Go and Gin framework for managing events and user regis
     {
       "user": {
         "id": 1,
-        "email": "user@example.com"
+        "email": "user@example.com",
+        "role": "user"
       },
       "token": "jwt-token-here"
     }
@@ -102,7 +107,7 @@ A RESTful API built with Go and Gin framework for managing events and user regis
 - **GET /events/:id** - Get a specific event by ID (public)
   - Response: Event object
 
-- **POST /events** - Create a new event (protected)
+- **POST /events** - Create a new event (protected, any authenticated user)
   - Headers: `Authorization: Bearer <token>`
   - Request body:
     ```json
@@ -128,7 +133,7 @@ A RESTful API built with Go and Gin framework for managing events and user regis
     }
     ```
 
-- **PUT /events/:id** - Update an event (protected, owner only)
+- **PUT /events/:id** - Update an event (protected, owner or admin)
   - Headers: `Authorization: Bearer <token>`
   - Request body:
     ```json
@@ -154,7 +159,7 @@ A RESTful API built with Go and Gin framework for managing events and user regis
     }
     ```
 
-- **DELETE /events/:id** - Delete an event (protected, owner only)
+- **DELETE /events/:id** - Delete an event (protected, owner or admin)
   - Headers: `Authorization: Bearer <token>`
   - Response:
     ```json
@@ -183,7 +188,23 @@ A RESTful API built with Go and Gin framework for managing events and user regis
     }
     ```
 
-## Authentication
+### Admin Endpoints
+
+Admin endpoints require the user to have the `admin` role. Use the JWT token of an admin user in the `Authorization` header.
+
+- **GET /admin/users** - Get all users
+- **GET /admin/users/:id** - Get user by ID
+- **PUT /admin/users/:id** - Update a user (role and email)
+- **DELETE /admin/users/:id** - Delete a user
+
+#### Example Admin Request
+
+```http
+GET /admin/users
+Authorization: Bearer <admin-jwt-token>
+```
+
+## Authentication & Authorization
 
 The API uses JWT (JSON Web Tokens) for authentication. To access protected endpoints:
 
@@ -191,3 +212,9 @@ The API uses JWT (JSON Web Tokens) for authentication. To access protected endpo
 2. Include the token in the Authorization header for protected requests:
    - `Authorization: Bearer <token>` or
    - `Authorization: <token>`
+
+### User Roles
+- **user**: Can register/login, view and manage their own events, register for events.
+- **admin**: Has all user permissions plus access to admin endpoints for managing users.
+
+Role-based access is enforced using middleware. Admin endpoints are only accessible to users with the `admin` role.
