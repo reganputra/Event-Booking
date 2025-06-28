@@ -31,7 +31,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		// Set the user ID and role in the context for use in handlers
 		c.Set("userId", userId)
-		c.Set("role", role)
+		c.Set("userRole", role)
 
 		// Continue to the next handler
 		c.Next()
