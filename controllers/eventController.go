@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go-rest-api/model"
 	"go-rest-api/services"
+	"log"
 	"net/http"
 	"strconv"
 )
@@ -36,6 +37,7 @@ func (c *EventController) CreateEvent(ctx *gin.Context) {
 	event.UserIds = userID
 	err = c.eventService.CreateEvent(ctx, &event)
 	if err != nil {
+		log.Printf("Error creating event: %v", err)
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create event"})
 		return
 	}
