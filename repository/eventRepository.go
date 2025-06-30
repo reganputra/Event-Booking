@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"go-rest-api/model"
 )
 
@@ -26,23 +27,19 @@ func NewEventRepository(db *sql.DB) EventRepository {
 
 func (r *sqliteEventRepository) Save(ctx context.Context, event *model.Event) error {
 
-	insert := "INSERT INTO events (name, description, location, dateTime, user_id) VALUES ($1, $2, $3, $4, $5)"
+	insert := "INSERT INTO events (name, description, location, dateTime, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id"
 	stmt, err := r.db.PrepareContext(ctx, insert)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to prepare statement for event save: %w", err)
 	}
 	defer stmt.Close()
 
-	result, err := stmt.ExecContext(ctx, event.Name, event.Description, event.Location, event.Date, event.UserIds)
+	row := stmt.QueryRowContext(ctx, event.Name, event.Description, event.Location, event.Date, event.UserIds)
+	err = row.Scan(&event.Id) //
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute statement and scan ID for event save: %w", err)
 	}
 
-	lastInsertId, err := result.LastInsertId()
-	if err != nil {
-		return err
-	}
-	event.Id = lastInsertId
 	return nil
 }
 

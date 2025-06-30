@@ -6,7 +6,6 @@ import (
 	"errors"
 	"go-rest-api/model"
 	"go-rest-api/utils"
-	"strings"
 )
 
 type UserRepository interface {
@@ -32,7 +31,7 @@ func (s *userRepository) Create(ctx context.Context, u *model.User) error {
 		u.Role = "user"
 	}
 
-	query := "INSERT INTO users (email, password) VALUES ($1, $2)"
+	query := "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id"
 	stmt, err := s.db.PrepareContext(ctx, query)
 	if err != nil {
 		panic(err)
@@ -40,18 +39,18 @@ func (s *userRepository) Create(ctx context.Context, u *model.User) error {
 
 	defer stmt.Close()
 
-	result, err := stmt.ExecContext(ctx, u.Email, utils.HashPassword(u.Password))
+	row := stmt.QueryRowContext(ctx, u.Email, utils.HashPassword(u.Password))
+	err = row.Scan(&u.Id)
 	if err != nil {
-		if strings.Contains(err.Error(), "duplicate key value") {
+		if err.Error() == "UNIQUE constraint failed: users.email" {
 			return errors.New("email already registered")
 		}
-		return err // Don't panic, just return the error
+		// Handle other potential errors
+		if errors.Is(err, sql.ErrNoRows) {
+			return errors.New("failed to create user, no rows returned")
+		}
 	}
-
-	userId, err := result.LastInsertId()
-
-	u.Id = userId
-	return err
+	return nil
 }
 
 func (s *userRepository) GetAll(ctx context.Context) ([]model.User, error) {
