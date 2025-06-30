@@ -2,16 +2,25 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"go-rest-api/connection"
 	"go-rest-api/controllers"
 	"go-rest-api/helper"
 	"go-rest-api/middleware"
 	"go-rest-api/repository"
 	"go-rest-api/services"
+	"log"
 	"net/http"
 )
 
 func main() {
+
+	// Load environment variables from .env file
+	err := godotenv.Load()
+	if err != nil {
+		log.Println("Error loading .env file, using default environment variables")
+	}
+
 	// Initialize the database connection
 	db := connection.DbConnect()
 	defer db.Close()
@@ -64,7 +73,7 @@ func main() {
 	}
 
 	// Start the server on port 3000
-	err := router.Run(":3000")
+	err = router.Run(":3000")
 	helper.PanicIfError(err)
 
 }
