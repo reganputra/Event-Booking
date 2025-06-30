@@ -8,18 +8,16 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	_ "github.com/mattn/go-sqlite3"
+	"log"
 	"os"
 )
-
-//var DB *sql.DB
 
 func DbConnect() *sql.DB {
 	// Connect to PostgreSQL database
 	connectionString := os.Getenv("DATABASE_URL")
 	if connectionString == "" {
 		connectionString = "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
-		fmt.Println("Warning: DATABASE_URL environment variable not set. Using default local PostgreSQL connection string.")
+		log.Println("Warning: DATABASE_URL environment variable not set. Using default local PostgreSQL connection string.")
 	}
 	var err error
 	db, err := sql.Open("pgx", connectionString)
@@ -32,14 +30,14 @@ func DbConnect() *sql.DB {
 	err = runMigrations(connectionString)
 	if err != nil {
 		if errors.Is(err, migrate.ErrNoChange) {
-			fmt.Println("Database migrations: No new changes applied.")
+			log.Println("Database migrations: No new changes applied.")
 		} else {
 
 			panic(fmt.Sprintf("Failed to run database migrations: %v", err))
 		}
 	} else {
 
-		fmt.Println("Database migrations ran successfully.")
+		log.Println("Database migrations ran successfully.")
 	}
 	return db
 
