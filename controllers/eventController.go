@@ -198,3 +198,21 @@ func (c *EventController) CancelEventRegistration(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, gin.H{"message": "Successfully cancelled event registration"})
 }
+
+func (c *EventController) GetRegisteredEvents(ctx *gin.Context) {
+	userIDVal, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context. Authentication issue."})
+		return
+	}
+	userID := userIDVal.(int64)
+
+	events, err := c.eventService.GetRegisteredEvents(ctx, userID)
+	if err != nil {
+		log.Printf("Error getting registered events for user %d: %v", userID, err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve registered events"})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, events)
+}
