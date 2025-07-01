@@ -54,12 +54,16 @@ DELETE http://localhost:3000/events/2
 Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXIyQGV4YW1wbGUuY29tIiwiZXhwIjoxNzUxMzg0MjA1LCJyb2xlIjoidXNlciIsInVzZXJJZCI6M30.dGPYtBCLe8BemMfZLEHdhYjvj4mYb4u5P91yYS63RbU
 
 ### Register for an event (Protected - requires authentication)
-POST http://localhost:3000/events/2/register
-Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NTEyOTk2NjUsInJvbGUiOiJ1c2VyIiwidXNlcklkIjoxfQ.n2L2eeAXxY_OHG_3SZ9AweMwD8Z2QdZ_-SZ_r4jPy8A
+POST http://localhost:3000/events/4/register
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXIyQGV4YW1wbGUuY29tIiwiZXhwIjoxNzUxMzg1MzA3LCJyb2xlIjoidXNlciIsInVzZXJJZCI6M30.oQgF_iGR09VnaMl-0rl-O3WJ_2dPttI2zZEmM_HN0Z0
 
 ### Cancel registration for an event (Protected - requires authentication)
 DELETE http://localhost:3000/events/3/register
 Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NTEyOTk2NjUsInJvbGUiOiJ1c2VyIiwidXNlcklkIjoxfQ.n2L2eeAXxY_OHG_3SZ9AweMwD8Z2QdZ_-SZ_r4jPy8A
+
+### GET all registrations for an event (Protected - requires authentication)
+GET http://localhost:3000/events/registered
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXIyQGV4YW1wbGUuY29tIiwiZXhwIjoxNzUxMzg1ODgwLCJyb2xlIjoidXNlciIsInVzZXJJZCI6M30.vuSpsR8pBxex_81C7Q9xg372QcJlUDSMhXfR6-zhZME
 
 
 ### Admin: Get all users (Protected - requires admin authentication)
