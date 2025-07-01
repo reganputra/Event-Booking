@@ -2,63 +2,57 @@ package connection
 
 import (
 	"database/sql"
-	_ "github.com/mattn/go-sqlite3"
+	"errors"
+	"fmt"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/jackc/pgx/v5/stdlib"
+	"log"
+	"os"
 )
 
-//var DB *sql.DB
-
 func DbConnect() *sql.DB {
+	// Connect to PostgreSQL database
+	connectionString := os.Getenv("DATABASE_URL")
+	if connectionString == "" {
+		connectionString = "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+		log.Println("Warning: DATABASE_URL environment variable not set. Using default local PostgreSQL connection string.")
+	}
 	var err error
-	db, err := sql.Open("sqlite3", "event_booking.db")
+	db, err := sql.Open("pgx", connectionString)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("Failed to connect to database: %v", err))
 	}
 	db.SetMaxOpenConns(5)
-	err = createTable(db)
+	db.SetMaxIdleConns(5)
+
+	err = runMigrations(connectionString)
 	if err != nil {
-		panic(err)
+		if errors.Is(err, migrate.ErrNoChange) {
+			log.Println("Database migrations: No new changes applied.")
+		} else {
+
+			panic(fmt.Sprintf("Failed to run database migrations: %v", err))
+		}
+	} else {
+
+		log.Println("Database migrations ran successfully.")
 	}
 	return db
 
 }
 
-func createTable(db *sql.DB) error {
-	createUsersTable := `
-CREATE TABLE IF NOT EXISTS users (
-    	id INTEGER PRIMARY KEY AUTOINCREMENT,
-    	email TEXT NOT NULL UNIQUE,
-    	password TEXT NOT NULL,
-    	 role TEXT NOT NULL DEFAULT 'user'
-);`
-	_, err := db.Exec(createUsersTable)
+func runMigrations(connectionString string) error {
+	m, err := migrate.New("file://./migrations/migrations", connectionString)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not create migrate instance: %w", err)
 	}
+	defer m.Close()
 
-	createEventsTable := `
-	CREATE TABLE IF NOT EXISTS events (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		name TEXT NOT NULL,
-		description TEXT NOT NULL,
-		location TEXT NOT NULL,
-		dateTime DATETIME NOT NULL,
-		user_id INTEGER,
-		FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-	);
-	`
-	_, err = db.Exec(createEventsTable)
+	err = m.Up()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to apply migrations: %w", err)
 	}
-
-	createRegistrationsTable := `
-    CREATE TABLE IF NOT EXISTS registrations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        event_id INTEGER,
-        user_id INTEGER,
-        FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );`
-	_, err = db.Exec(createRegistrationsTable)
-	return err
+	return nil
 }

@@ -31,7 +31,7 @@ func (s *userRepository) Create(ctx context.Context, u *model.User) error {
 		u.Role = "user"
 	}
 
-	query := "INSERT INTO users (email, password) VALUES (?, ?)"
+	query := "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id"
 	stmt, err := s.db.PrepareContext(ctx, query)
 	if err != nil {
 		panic(err)
@@ -39,18 +39,18 @@ func (s *userRepository) Create(ctx context.Context, u *model.User) error {
 
 	defer stmt.Close()
 
-	result, err := stmt.ExecContext(ctx, u.Email, utils.HashPassword(u.Password))
+	row := stmt.QueryRowContext(ctx, u.Email, utils.HashPassword(u.Password))
+	err = row.Scan(&u.Id)
 	if err != nil {
 		if err.Error() == "UNIQUE constraint failed: users.email" {
 			return errors.New("email already registered")
 		}
-		panic(err)
+		// Handle other potential errors
+		if errors.Is(err, sql.ErrNoRows) {
+			return errors.New("failed to create user, no rows returned")
+		}
 	}
-
-	userId, err := result.LastInsertId()
-
-	u.Id = userId
-	return err
+	return nil
 }
 
 func (s *userRepository) GetAll(ctx context.Context) ([]model.User, error) {
@@ -77,7 +77,7 @@ func (s *userRepository) GetAll(ctx context.Context) ([]model.User, error) {
 }
 
 func (s *userRepository) GetById(ctx context.Context, id int64) (*model.User, error) {
-	query := "SELECT id, email, role FROM users WHERE id = ?"
+	query := "SELECT id, email, role FROM users WHERE id = $1"
 	row := s.db.QueryRowContext(ctx, query, id)
 
 	var user model.User
@@ -92,7 +92,7 @@ func (s *userRepository) GetById(ctx context.Context, id int64) (*model.User, er
 }
 
 func (s *userRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
-	query := "SELECT id, email, role FROM users WHERE email = ?"
+	query := "SELECT id, email, role FROM users WHERE email = $1"
 	row := s.db.QueryRowContext(ctx, query, email)
 
 	var user model.User
@@ -111,10 +111,10 @@ func (s *userRepository) Update(ctx context.Context, u *model.User) error {
 	var args []interface{}
 
 	if u.Password != "" {
-		updateQuery = "UPDATE users SET email = ?, password = ?, role = ? WHERE id = ?"
+		updateQuery = "UPDATE users SET email = $1, password = $2, role = $3 WHERE id = $4"
 		args = []interface{}{u.Email, utils.HashPassword(u.Password), u.Role, u.Id}
 	} else {
-		updateQuery = "UPDATE users SET email = ?, role = ? WHERE id = ?"
+		updateQuery = "UPDATE users SET email = $1, role = $2 WHERE id = $3"
 		args = []interface{}{u.Email, u.Role, u.Id}
 	}
 
@@ -143,7 +143,7 @@ func (s *userRepository) Update(ctx context.Context, u *model.User) error {
 }
 
 func (s *userRepository) Delete(ctx context.Context, id int64) error {
-	query := "DELETE FROM users WHERE id = ?"
+	query := "DELETE FROM users WHERE id = $1"
 	stmt, err := s.db.PrepareContext(ctx, query)
 	if err != nil {
 		return err
@@ -165,7 +165,7 @@ func (s *userRepository) Delete(ctx context.Context, id int64) error {
 }
 
 func (s *userRepository) Validate(ctx context.Context, u *model.User) error {
-	query := "SELECT id, password, role FROM users WHERE email = ?"
+	query := "SELECT id, password, role FROM users WHERE email = $1"
 	row := s.db.QueryRowContext(ctx, query, u.Email)
 
 	var retrievedPassword string

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"go-rest-api/model"
 )
 
@@ -26,23 +27,19 @@ func NewEventRepository(db *sql.DB) EventRepository {
 
 func (r *sqliteEventRepository) Save(ctx context.Context, event *model.Event) error {
 
-	insert := "INSERT INTO events (name, description, location, dateTime, user_id) VALUES (?, ?, ?, ?, ?)"
+	insert := "INSERT INTO events (name, description, location, dateTime, user_id) VALUES ($1, $2, $3, $4, $5) RETURNING id"
 	stmt, err := r.db.PrepareContext(ctx, insert)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to prepare statement for event save: %w", err)
 	}
 	defer stmt.Close()
 
-	result, err := stmt.ExecContext(ctx, event.Name, event.Description, event.Location, event.Date, event.UserIds)
+	row := stmt.QueryRowContext(ctx, event.Name, event.Description, event.Location, event.Date, event.UserIds)
+	err = row.Scan(&event.Id) //
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to execute statement and scan ID for event save: %w", err)
 	}
 
-	lastInsertId, err := result.LastInsertId()
-	if err != nil {
-		return err
-	}
-	event.Id = lastInsertId
 	return nil
 }
 
@@ -72,7 +69,7 @@ func (r *sqliteEventRepository) GetAllEvents(ctx context.Context) ([]model.Event
 }
 
 func (r *sqliteEventRepository) GetEventById(ctx context.Context, id int64) (*model.Event, error) {
-	query := "SELECT * FROM events WHERE id = ?"
+	query := "SELECT * FROM events WHERE id = $1"
 	row := r.db.QueryRowContext(ctx, query, id)
 
 	var event model.Event
@@ -85,7 +82,7 @@ func (r *sqliteEventRepository) GetEventById(ctx context.Context, id int64) (*mo
 }
 
 func (r *sqliteEventRepository) Update(ctx context.Context, event *model.Event) error {
-	update := "UPDATE events SET name = ?, description = ?, location = ?, dateTime = ? WHERE id = ?"
+	update := "UPDATE events SET name = $1, description = $2, location = $3, dateTime = $4 WHERE id = $5"
 	stmt, err := r.db.PrepareContext(ctx, update)
 	if err != nil {
 		return err
@@ -101,7 +98,7 @@ func (r *sqliteEventRepository) Update(ctx context.Context, event *model.Event) 
 }
 
 func (r *sqliteEventRepository) DeleteEvent(ctx context.Context, id int64) error {
-	query := "DELETE FROM events WHERE id = ?"
+	query := "DELETE FROM events WHERE id = $1"
 	stmt, err := r.db.PrepareContext(ctx, query)
 	if err != nil {
 		return err
@@ -117,7 +114,7 @@ func (r *sqliteEventRepository) DeleteEvent(ctx context.Context, id int64) error
 }
 
 func (r *sqliteEventRepository) RegisterEvent(ctx context.Context, eventId, userId int64) error {
-	insert := "INSERT INTO registrations (event_id, user_id) VALUES (?, ?)"
+	insert := "INSERT INTO registrations (event_id, user_id) VALUES ($1, $2)"
 	stmt, err := r.db.PrepareContext(ctx, insert)
 	if err != nil {
 		return err
@@ -132,7 +129,7 @@ func (r *sqliteEventRepository) RegisterEvent(ctx context.Context, eventId, user
 }
 
 func (r *sqliteEventRepository) CancelRegistration(ctx context.Context, eventId, userId int64) error {
-	query := "DELETE FROM registrations WHERE event_id = ? AND user_id = ?"
+	query := "DELETE FROM registrations WHERE event_id = $1 AND user_id = $2"
 	stmt, err := r.db.PrepareContext(ctx, query)
 	if err != nil {
 		return err
