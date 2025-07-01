@@ -111,7 +111,7 @@ func (s *userRepository) Update(ctx context.Context, u *model.User) error {
 	var args []interface{}
 
 	if u.Password != "" {
-		updateQuery = "UPDATE users SET email = $1, password = $2, role = $4 WHERE id = $5"
+		updateQuery = "UPDATE users SET email = $1, password = $2, role = $3 WHERE id = $4"
 		args = []interface{}{u.Email, utils.HashPassword(u.Password), u.Role, u.Id}
 	} else {
 		updateQuery = "UPDATE users SET email = $1, role = $2 WHERE id = $3"
