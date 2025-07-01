@@ -12,8 +12,8 @@ POST http://localhost:3000/users/register
 Content-Type: application/json
 
 {
-  "email": "admin@example.com",
-  "password": "adminpassword"
+  "email": "user2@example.com",
+  "password": "userpassword2"
 }
 
 ### Login user
@@ -21,8 +21,8 @@ POST http://localhost:3000/users/login
 Content-Type: application/json
 
 {
-  "email": "admin@example.com",
-  "password": "adminpassword"
+  "email": "user2@example.com",
+  "password": "userpassword2"
 }
 
 ### Create a new event (Protected - requires authentication)
@@ -50,8 +50,8 @@ Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBs
 }
 
 ### Delete an event (Protected - requires authentication)
-DELETE http://localhost:3000/events/5
-Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwiZXhwIjoxNzUxMzAwMDgxLCJyb2xlIjoiYWRtaW4iLCJ1c2VySWQiOjJ9.dlsi17C2bF2nCrzQspcZmNR3HmvDxT7nn-keGN5LAzM
+DELETE http://localhost:3000/events/2
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXIyQGV4YW1wbGUuY29tIiwiZXhwIjoxNzUxMzg0MjA1LCJyb2xlIjoidXNlciIsInVzZXJJZCI6M30.dGPYtBCLe8BemMfZLEHdhYjvj4mYb4u5P91yYS63RbU
 
 ### Register for an event (Protected - requires authentication)
 POST http://localhost:3000/events/2/register
