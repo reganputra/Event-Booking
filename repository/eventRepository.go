@@ -164,11 +164,9 @@ func (r *sqliteEventRepository) GetRegisteredEventByUserId(ctx context.Context, 
 	}
 	defer rows.Close()
 
-	// --- PERBAIKAN DI SINI: Inisialisasi slice sebagai non-nil ---
-	events := make([]model.Event, 0) // Inisialisasi sebagai slice kosong (non-nil)
-	// --- AKHIR PERBAIKAN ---
+	events := make([]model.Event, 0)
 
-	log.Printf("Querying registered events for user ID: %d", userId) // Log untuk debugging
+	log.Printf("Querying registered events for user ID: %d", userId)
 	for rows.Next() {
 		var event model.Event
 		err := rows.Scan(&event.Id, &event.Name, &event.Description, &event.Location, &event.Date, &event.UserIds)
