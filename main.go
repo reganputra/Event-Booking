@@ -60,6 +60,7 @@ func main() {
 		protectedRoutes.DELETE("/events/:id", eventController.DeleteEvent)
 		protectedRoutes.POST("/events/:id/register", eventController.RegisterForEvent)
 		protectedRoutes.DELETE("/events/:id/register", eventController.CancelEventRegistration)
+		protectedRoutes.GET("/events/registered", eventController.GetRegisteredEvents)
 	}
 
 	adminRoutes := router.Group("/admin")
