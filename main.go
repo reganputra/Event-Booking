@@ -1,8 +1,6 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 	"go-rest-api/connection"
 	"go-rest-api/controllers"
 	"go-rest-api/helper"
@@ -11,6 +9,9 @@ import (
 	"go-rest-api/services"
 	"log"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 )
 
 func main() {
@@ -48,6 +49,7 @@ func main() {
 
 	// Public routes
 	router.GET("/events", eventController.GetAllEvents)
+	router.GET("/events/category/:category", eventController.GetEventsByCategory)
 	router.GET("/events/:id", eventController.GetEventByID)
 	router.POST("/users/register", userController.RegisterUser)
 	router.POST("/users/login", userController.LoginUser)
