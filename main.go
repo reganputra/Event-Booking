@@ -29,14 +29,26 @@ func main() {
 	// Initialize the repository
 	eventRepo := repository.NewEventRepository(db)
 	userRepo := repository.NewUserRepository(db)
+	reviewRepo := repository.NewReviewRepository(db) // Add ReviewRepository
+
+	// Initialize the repository
+	eventRepo := repository.NewEventRepository(db)
+	userRepo := repository.NewUserRepository(db)
+	reviewRepo := repository.NewReviewRepository(db)
+	waitlistRepo := repository.NewWaitlistRepository(db) // Add WaitlistRepository
 
 	// Initialize the service
-	eventService := services.NewEventService(eventRepo)
+	// Note: WaitlistService might need UserRepository if it fetches user details for notifications
+	waitlistService := services.NewWaitlistService(waitlistRepo, eventRepo, userRepo)
+	eventService := services.NewEventService(eventRepo, waitlistService) // Pass waitlistService to EventService
 	userService := services.NewUserService(userRepo)
+	reviewService := services.NewReviewService(reviewRepo, eventRepo)
 
 	// Initialize the controller
 	eventController := controllers.NewEventController(eventService)
 	userController := controllers.NewUserController(userService)
+	reviewController := controllers.NewReviewController(reviewService)
+	waitlistController := controllers.NewWaitlistController(waitlistService) // Add WaitlistController
 
 	router := gin.Default()
 
@@ -49,6 +61,7 @@ func main() {
 
 	// Public routes
 	router.GET("/events", eventController.GetAllEvents)
+	router.GET("/events/search", eventController.SearchEvents) // New search endpoint
 	router.GET("/events/category/:category", eventController.GetEventsByCategory)
 	router.GET("/events/:id", eventController.GetEventByID)
 	router.POST("/users/register", userController.RegisterUser)
@@ -63,7 +76,23 @@ func main() {
 		protectedRoutes.POST("/events/:id/register", eventController.RegisterForEvent)
 		protectedRoutes.DELETE("/events/:id/register", eventController.CancelEventRegistration)
 		protectedRoutes.GET("/events/registered", eventController.GetRegisteredEvents)
+
+		// Review routes
+		protectedRoutes.POST("/events/:id/reviews", reviewController.CreateReview)
+		// Getting reviews can be public or protected. Let's make it public for now, adjust if needed.
+		// If it were to be protected (e.g. only registered users can see reviews), move it inside this group.
+
+		// Waitlist routes (Protected)
+		protectedRoutes.POST("/events/:id/waitlist", waitlistController.JoinWaitlist)
+		protectedRoutes.DELETE("/events/:id/waitlist", waitlistController.LeaveWaitlist)
+		// GET /events/:id/waitlist is admin/owner only - requires more specific authorization
+		// For now, placing it under general protected routes. Access control needs to be refined in the controller or via specific middleware.
+		// A simple approach for now: only admins can view waitlists.
+		// If event owners should also view, the AuthorizeRole("admin") middleware needs to be more flexible or applied differently.
 	}
+	// Public route for getting reviews for an event
+	router.GET("/events/:id/reviews", reviewController.GetReviewsForEvent)
+
 
 	adminRoutes := router.Group("/admin")
 	adminRoutes.Use(middleware.AuthMiddleware())
@@ -73,6 +102,9 @@ func main() {
 		adminRoutes.GET("/users/:id", userController.GetUserByID)
 		adminRoutes.PUT("/users/:id", userController.UpdateUser)
 		adminRoutes.DELETE("/users/:id", userController.DeleteUser)
+
+		// Waitlist viewing for admin
+		adminRoutes.GET("/events/:id/waitlist", waitlistController.GetWaitlistForEvent)
 	}
 
 	// Start the server on port 3000

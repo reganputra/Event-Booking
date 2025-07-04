@@ -14,6 +14,8 @@ A RESTful API built with Go and Gin framework for managing events and user regis
   - [User Management](#user-management)
   - [Event Management](#event-management)
   - [Event Registration](#event-registration)
+  - [Event Reviews](#event-reviews)
+  - [Event Waitlist](#event-waitlist)
   - [Admin Endpoints](#admin-endpoints)
 - [Authentication & Authorization](#authentication--authorization)
 
@@ -24,6 +26,9 @@ A RESTful API built with Go and Gin framework for managing events and user regis
 - Admin-only endpoints for user management
 - CRUD operations for events
 - Event registration functionality
+- Event search and filtering (by keyword, date range)
+- Event reviews and ratings
+- Waitlist system for full events
 - Protected routes with middleware authentication and role-based authorization
 - PostgreSQL database for data storage
 - Docker support for easy setup and deployment
@@ -150,6 +155,14 @@ A RESTful API built with Go and Gin framework for managing events and user regis
 
   - Response: Array of event objects
 
+- **GET /events/search** - Search events by keyword, start date, or end date (public)
+  - Query Parameters:
+    - `keyword` (string, optional): Search term for event name or description.
+    - `startDate` (string, optional, format: `YYYY-MM-DD`): Filter events starting on or after this date.
+    - `endDate` (string, optional, format: `YYYY-MM-DD`): Filter events ending on or before this date.
+  - Example: `/events/search?keyword=Workshop&startDate=2024-03-01`
+  - Response: Array of event objects
+
 - **POST /events** - Create a new event (protected, any authenticated user)
 
   - Headers: `Authorization: Bearer <token>`
@@ -160,7 +173,8 @@ A RESTful API built with Go and Gin framework for managing events and user regis
       "description": "This is a new event description",
       "location": "123 Event St, Event City, EC 12345",
       "date": "2023-12-01T15:00:00Z",
-      "category": "Tech"
+      "category": "Tech",
+      "capacity": 50  // Optional: Maximum number of attendees. 0 or omitted for unlimited.
     }
     ```
   - Response:
@@ -212,6 +226,12 @@ A RESTful API built with Go and Gin framework for managing events and user regis
       "message": "Successfully registered for the event"
     }
     ```
+  - Note: If the event is full and has a capacity set, this might return a 202 Accepted with a message like:
+    ```json
+    {
+      "message": "event is full, user added to waitlist"
+    }
+    ```
 
 - **DELETE /events/:id/register** - Cancel registration for an event (protected)
 
@@ -227,6 +247,83 @@ A RESTful API built with Go and Gin framework for managing events and user regis
   - Headers: `Authorization: Bearer <token>`
   - Response: Array of event objects
 
+### Event Reviews
+
+- **POST /events/:id/reviews** - Create a review for an event (protected)
+  - User must be authenticated. (Future enhancement: ensure user was registered for the event).
+  - Headers: `Authorization: Bearer <token>`
+  - Request body:
+    ```json
+    {
+      "rating": 5, // Integer between 1 and 5
+      "comment": "This was an amazing event!"
+    }
+    ```
+  - Response (201 Created):
+    ```json
+    {
+      "message": "Review created successfully",
+      "review": {
+        "id": 1,
+        "event_id": 123,
+        "user_id": 1,
+        "rating": 5,
+        "comment": "This was an amazing event!",
+        "created_at": "2024-03-15T10:00:00Z"
+      }
+    }
+    ```
+  - Response (409 Conflict if already reviewed):
+    ```json
+    {
+      "error": "you have already reviewed this event"
+    }
+    ```
+
+- **GET /events/:id/reviews** - Get all reviews for a specific event (public)
+  - Response: Array of review objects. Each event object returned from `/events` or `/events/:id` will also now include an `average_rating` field.
+
+### Event Waitlist
+
+- **POST /events/:id/waitlist** - Join the waitlist for a full event (protected)
+  - User must be authenticated.
+  - This endpoint should typically be called if `POST /events/:id/register` indicates the event is full and the user was added to the waitlist, or if a user explicitly wants to join a known full event's waitlist.
+  - Headers: `Authorization: Bearer <token>`
+  - Response (201 Created):
+    ```json
+    {
+      "message": "Successfully joined the waitlist",
+      "waitlist_entry": {
+        "id": 1,
+        "event_id": 123,
+        "user_id": 1,
+        "created_at": "2024-03-15T11:00:00Z"
+      }
+    }
+    ```
+  - Response (409 Conflict if various conditions not met, e.g., event not full, already registered, already on waitlist):
+    ```json
+    {
+      "error": "Specific error message like 'event is not full, cannot join waitlist'"
+    }
+    ```
+
+- **DELETE /events/:id/waitlist** - Leave the waitlist for an event (protected)
+  - User must be authenticated.
+  - Headers: `Authorization: Bearer <token>`
+  - Response (200 OK):
+    ```json
+    {
+      "message": "Successfully left the waitlist"
+    }
+    ```
+  - Response (404 Not Found if user not on waitlist):
+    ```json
+    {
+      "error": "user is not on the waitlist for this event"
+    }
+    ```
+
 ### Admin Endpoints
 
 Admin endpoints require the user to have the `admin` role. Use the JWT token of an admin user in the `Authorization` header.
@@ -235,6 +332,9 @@ Admin endpoints require the user to have the `admin` role. Use the JWT token of 
 - **GET /admin/users/:id** - Get user by ID
 - **PUT /admin/users/:id** - Update a user (role and email)
 - **DELETE /admin/users/:id** - Delete a user
+- **GET /admin/events/:id/waitlist** - Get the waitlist for a specific event (admin)
+  - Headers: `Authorization: Bearer <admin-jwt-token>`
+  - Response: Array of waitlist entry objects.
 
 #### Example Admin Request
 

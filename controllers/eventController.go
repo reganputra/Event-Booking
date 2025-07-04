@@ -55,6 +55,30 @@ func (c *EventController) GetAllEvents(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, events)
 }
 
+func (c *EventController) SearchEvents(ctx *gin.Context) {
+	keyword := ctx.Query("keyword")
+	startDate := ctx.Query("startDate") // Expected format: YYYY-MM-DD
+	endDate := ctx.Query("endDate")     // Expected format: YYYY-MM-DD
+
+	// Basic validation for date formats (can be more robust)
+	// Consider using time.Parse to validate dates properly if strict format is required
+	// For now, we pass them as strings to the service/repository
+
+	events, err := c.eventService.GetEventsByCriteria(ctx, keyword, startDate, endDate)
+	if err != nil {
+		log.Printf("Error searching events: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search events"})
+		return
+	}
+
+	if len(events) == 0 {
+		ctx.JSON(http.StatusOK, gin.H{"message": "No events found matching your criteria", "events": []model.Event{}})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, events)
+}
+
 func (c *EventController) GetEventsByCategory(ctx *gin.Context) {
 	category := ctx.Param("category")
 	if category == "" {
@@ -186,7 +210,17 @@ func (c *EventController) RegisterForEvent(ctx *gin.Context) {
 
 	err = c.eventService.RegisterForEvent(ctx, eventID, userID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to register for event"})
+		// Check for specific errors from the service, like "event is full, user added to waitlist"
+		if err.Error() == "event is full, user added to waitlist" {
+			ctx.JSON(http.StatusAccepted, gin.H{"message": err.Error()}) // 202 Accepted might be suitable
+		} else if errors.Is(err, services.ErrAlreadyRegistered) {
+			ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		} else if errors.Is(err, services.ErrEventNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		} else {
+			log.Printf("Error registering for event %d by user %d: %v", eventID, userID, err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to register for event"})
+		}
 		return
 	}
 

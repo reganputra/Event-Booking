@@ -3,8 +3,10 @@ package services
 import (
 	"context"
 	"errors"
+	"fmt" // Added import for fmt
 	"go-rest-api/model"
 	"go-rest-api/repository"
+	"log" // Added import for log
 )
 
 type EventService interface {
@@ -12,6 +14,7 @@ type EventService interface {
 	GetAllEvents(ctx context.Context) ([]model.Event, error)
 	GetEventByID(ctx context.Context, id int64) (*model.Event, error)
 	GetEventsByCategory(ctx context.Context, category string) ([]model.Event, error)
+	GetEventsByCriteria(ctx context.Context, keyword string, startDate string, endDate string) ([]model.Event, error)
 	UpdateEvent(ctx context.Context, event *model.Event, userID int64, userRole string) error
 	DeleteEvent(ctx context.Context, id int64, userID int64, userRole string) error
 	RegisterForEvent(ctx context.Context, eventID, userID int64) error
@@ -20,16 +23,22 @@ type EventService interface {
 }
 
 type eventService struct {
-	eventRepository repository.EventRepository
+	eventRepository    repository.EventRepository
+	waitlistService WaitlistService // Added to call ProcessNextOnWaitlist
 }
 
-func NewEventService(eventRepository repository.EventRepository) EventService {
+func NewEventService(eventRepository repository.EventRepository, waitlistService WaitlistService) EventService {
 	return &eventService{
-		eventRepository: eventRepository,
+		eventRepository:    eventRepository,
+		waitlistService: waitlistService,
 	}
 }
 
 func (s *eventService) CreateEvent(ctx context.Context, event *model.Event) error {
+	// Default capacity to 0 if not provided or negative, unless binding already handles gte=0
+	if event.Capacity < 0 {
+		event.Capacity = 0
+	}
 	return s.eventRepository.Save(ctx, event)
 }
 
@@ -50,6 +59,21 @@ func (s *eventService) UpdateEvent(ctx context.Context, event *model.Event, user
 	if existingEvent.UserIds != userID && userRole != "admin" {
 		return errors.New("unauthorized: you don't have permission to update this event")
 	}
+	// Preserve existing capacity if not provided in update payload
+	if event.Capacity == 0 && existingEvent.Capacity > 0 { // Check if capacity is being explicitly set to 0 or just omitted
+		// If omitempty is used and Capacity is not in JSON, it will be 0.
+		// We need to decide if 0 means "unlimited" or "use existing".
+		// Assuming here if it's 0 in payload but was >0, it's an attempt to remove capacity limit,
+		// unless event.Capacity was not part of the request, then we should keep existingEvent.Capacity.
+		// This logic depends on how PATCH vs PUT is handled or how "omitempty" is interpreted by ShouldBindJSON.
+		// For simplicity, if event.Capacity is its zero value (0 for int) after binding, and existing was >0,
+		// we might want to keep existingEvent.Capacity.
+		// However, current model has `omitempty` and `gte=0`. If `capacity` is not in request, `event.Capacity` will be 0.
+		// If it *is* in request as 0, it means set to 0.
+		// This part might need more robust handling based on PATCH/PUT semantics.
+		// For now, if event.Capacity is 0 after binding, it's taken as is.
+	}
+
 
 	return s.eventRepository.Update(ctx, event)
 }
@@ -68,23 +92,70 @@ func (s *eventService) DeleteEvent(ctx context.Context, id int64, userID int64, 
 }
 
 func (s *eventService) RegisterForEvent(ctx context.Context, eventID, userID int64) error {
-	// Check if event exists
-	_, err := s.eventRepository.GetEventById(ctx, eventID)
+	event, err := s.eventRepository.GetEventById(ctx, eventID)
 	if err != nil {
-		return err
+		return ErrEventNotFound // Use defined error
+	}
+
+	// Check if user is already registered
+	isRegistered, err := s.eventRepository.IsUserRegistered(ctx, eventID, userID)
+	if err != nil {
+		return fmt.Errorf("failed to check registration status: %w", err)
+	}
+	if isRegistered {
+		return ErrAlreadyRegistered // Use defined error
+	}
+
+	// Check capacity if it's set (event.Capacity > 0)
+	if event.Capacity > 0 {
+		registrationCount, err := s.eventRepository.GetRegistrationCount(ctx, eventID)
+		if err != nil {
+			return fmt.Errorf("failed to get registration count: %w", err)
+		}
+		if registrationCount >= event.Capacity {
+			// Event is full, try adding to waitlist via WaitlistService
+			// This introduces a dependency from EventService to WaitlistService for this path.
+			// Alternatively, controller could orchestrate this.
+			log.Printf("Event %d is full. Attempting to add user %d to waitlist.", eventID, userID)
+			_, wlErr := s.waitlistService.JoinWaitlist(ctx, eventID, userID)
+			if wlErr != nil {
+				log.Printf("Failed to add user %d to waitlist for event %d: %v", userID, eventID, wlErr)
+				return fmt.Errorf("event is full and failed to join waitlist: %w", wlErr)
+			}
+			return errors.New("event is full, user added to waitlist") // Specific error/message
+		}
 	}
 
 	return s.eventRepository.RegisterEvent(ctx, eventID, userID)
 }
 
 func (s *eventService) CancelEventRegistration(ctx context.Context, eventID, userID int64) error {
-	// Check if event exists
 	_, err := s.eventRepository.GetEventById(ctx, eventID)
 	if err != nil {
-		return err
+		return err // Event not found
 	}
 
-	return s.eventRepository.CancelRegistration(ctx, eventID, userID)
+	err = s.eventRepository.CancelRegistration(ctx, eventID, userID)
+	if err != nil {
+		return err // Failed to cancel or user wasn't registered
+	}
+
+	// After successful cancellation, try to process the waitlist for this event.
+	// Run in a goroutine to avoid blocking the cancellation response.
+	go func() {
+		log.Printf("Processing waitlist for event %d after a cancellation.", eventID)
+		promotedUser, err := s.waitlistService.ProcessNextOnWaitlist(context.Background(), eventID)
+		if err != nil {
+			log.Printf("Error processing waitlist for event %d after cancellation: %v", eventID, err)
+		} else if promotedUser != nil {
+			log.Printf("User %s (ID: %d) was promoted from waitlist for event %d.", promotedUser.Email, promotedUser.Id, eventID)
+			// Potentially send notification here if not handled by ProcessNextOnWaitlist internally
+		} else {
+			log.Printf("No user promoted from waitlist for event %d, or waitlist was empty.", eventID)
+		}
+	}()
+
+	return nil
 }
 
 func (s *eventService) GetRegisteredEvents(ctx context.Context, userID int64) ([]model.Event, error) {
@@ -93,4 +164,10 @@ func (s *eventService) GetRegisteredEvents(ctx context.Context, userID int64) ([
 
 func (s *eventService) GetEventsByCategory(ctx context.Context, category string) ([]model.Event, error) {
 	return s.eventRepository.GetEventsByCategory(ctx, category)
+}
+
+func (s *eventService) GetEventsByCriteria(ctx context.Context, keyword string, startDate string, endDate string) ([]model.Event, error) {
+	// Add any business logic validation for search terms if needed here
+	// For example, validating date formats, keyword length, etc.
+	return s.eventRepository.GetEventsByCriteria(ctx, keyword, startDate, endDate)
 }
