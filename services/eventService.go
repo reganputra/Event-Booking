@@ -15,6 +15,7 @@ type EventService interface {
 	DeleteEvent(ctx context.Context, id int64, userID int64, userRole string) error
 	RegisterForEvent(ctx context.Context, eventID, userID int64) error
 	CancelEventRegistration(ctx context.Context, eventID, userID int64) error
+	GetRegisteredEvents(ctx context.Context, userID int64) ([]model.Event, error)
 }
 
 type eventService struct {
@@ -83,4 +84,8 @@ func (s *eventService) CancelEventRegistration(ctx context.Context, eventID, use
 	}
 
 	return s.eventRepository.CancelRegistration(ctx, eventID, userID)
+}
+
+func (s *eventService) GetRegisteredEvents(ctx context.Context, userID int64) ([]model.Event, error) {
+	return s.eventRepository.GetRegisteredEventByUserId(ctx, userID)
 }

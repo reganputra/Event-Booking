@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"go-rest-api/model"
+	"log"
 )
 
 type EventRepository interface {
@@ -15,6 +16,7 @@ type EventRepository interface {
 	DeleteEvent(ctx context.Context, id int64) error
 	RegisterEvent(ctx context.Context, eventID, userID int64) error
 	CancelRegistration(ctx context.Context, eventID, userID int64) error
+	GetRegisteredEventByUserId(ctx context.Context, userId int64) ([]model.Event, error)
 }
 
 type sqliteEventRepository struct {
@@ -141,4 +143,44 @@ func (r *sqliteEventRepository) CancelRegistration(ctx context.Context, eventId,
 		return err
 	}
 	return nil
+}
+
+func (r *sqliteEventRepository) GetRegisteredEventByUserId(ctx context.Context, userId int64) ([]model.Event, error) {
+	query := `
+		SELECT
+			e.id,
+			e.name,
+			e.description,
+			e.location,
+			e.dateTime,
+			e.user_id
+		FROM events AS e
+		JOIN registrations AS r ON e.id = r.event_id
+		WHERE r.user_id = $1
+	`
+	rows, err := r.db.QueryContext(ctx, query, userId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query registered events: %w", err)
+	}
+	defer rows.Close()
+
+	events := make([]model.Event, 0)
+
+	log.Printf("Querying registered events for user ID: %d", userId)
+	for rows.Next() {
+		var event model.Event
+		err := rows.Scan(&event.Id, &event.Name, &event.Description, &event.Location, &event.Date, &event.UserIds)
+		if err != nil {
+			log.Printf("Error scanning registered event row: %v", err) // Log jika scan gagal
+			return nil, fmt.Errorf("failed to scan registered event row: %w", err)
+		}
+		events = append(events, event)
+		log.Printf("Scanned event: %+v", event) // Log jika event berhasil di-scan
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating registered event rows: %w", err)
+	}
+	log.Printf("Finished scanning. Total events found: %d", len(events)) // Log jumlah event yang ditemukan
+	return events, nil
 }
