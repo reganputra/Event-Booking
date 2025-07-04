@@ -7,6 +7,9 @@ GET http://localhost:3000/events
 ### GET event by ID
 GET http://localhost:3000/events/1
 
+### Get events by category
+GET http://localhost:3000/events/category/Technology
+
 ### Register a new user
 POST http://localhost:3000/users/register
 Content-Type: application/json
@@ -31,10 +34,11 @@ Content-Type: application/json
 Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NTEyOTk2NjUsInJvbGUiOiJ1c2VyIiwidXNlcklkIjoxfQ.n2L2eeAXxY_OHG_3SZ9AweMwD8Z2QdZ_-SZ_r4jPy8A
 
 {
-  "name": "New Event 2",
-  "description": "This is a 2nd event description",
-  "location": "123 Event St, Event City, EC 12345",
-  "dateTime": "2023-12-01T15:00:00Z"
+  "name": "Tech Conference 2025",
+  "description": "Annual technology conference",
+  "location": "Bangkok Convention Center",
+  "date": "2025-08-15T09:00:00Z",
+  "category": "Technology"
 }
 
 ### Update an event (Protected - requires authentication)
@@ -43,10 +47,11 @@ Content-Type: application/json
 Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InVzZXJAZXhhbXBsZS5jb20iLCJleHAiOjE3NTEyOTk2NjUsInJvbGUiOiJ1c2VyIiwidXNlcklkIjoxfQ.n2L2eeAXxY_OHG_3SZ9AweMwD8Z2QdZ_-SZ_r4jPy8A
 
 {
-  "name": "Updated Event",
-  "description": "This is an updated event description",
-  "location": "456 Updated St, Updated City, UC 67890",
-  "dateTime": "2023-12-15T16:00:00Z"
+  "name": "Updated Conference 2025",
+  "description": "Updated technology conference",
+  "location": "Bangkok Convention Center",
+  "date": "2025-08-15T09:00:00Z",
+  "category": "Technology"
 }
 
 ### Delete an event (Protected - requires authentication)
