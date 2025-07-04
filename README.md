@@ -7,6 +7,8 @@ A RESTful API built with Go and Gin framework for managing events and user regis
 - [Features](#features)
 - [Technologies](#technologies)
 - [Installation](#installation)
+  - [Using Docker (Recommended)](#using-docker-recommended)
+  - [Local Installation](#local-installation)
 - [API Endpoints](#api-endpoints)
   - [Health Check](#health-check)
   - [User Management](#user-management)
@@ -23,34 +25,68 @@ A RESTful API built with Go and Gin framework for managing events and user regis
 - CRUD operations for events
 - Event registration functionality
 - Protected routes with middleware authentication and role-based authorization
-- SQLite database for data storage
+- PostgreSQL database for data storage
+- Docker support for easy setup and deployment
 
 ## Technologies
 
 - Go (Golang)
 - Gin Web Framework
-- SQLite
+- PostgreSQL
+- Docker
 - JWT for authentication
 
 ## Installation
 
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd go-rest-api
-   ```
+### Using Docker (Recommended)
 
-2. Install dependencies:
-   ```bash
-   go mod download
-   ```
+1.  **Clone the repository:**
 
-3. Run the application:
-   ```bash
-   go run main.go
-   ```
+    ```bash
+    git clone <repository-url>
+    cd go-rest-api
+    ```
 
-4. The server will start on port 3000 by default.
+2.  **Run the application with Docker Compose:**
+    This command will build the Go application and start the PostgreSQL database container.
+
+    ```bash
+    docker-compose up --build
+    ```
+
+3.  The server will start on port `3000`, and the PostgreSQL database will be available on port `5432`.
+
+### Local Installation
+
+1.  **Clone the repository:**
+
+    ```bash
+    git clone <repository-url>
+    cd go-rest-api
+    ```
+
+2.  **Install dependencies:**
+
+    ```bash
+    go mod download
+    ```
+
+3.  **Set up Environment Variables:**
+    Create a `.env` file in the root directory and add the following environment variable for the database connection.
+
+    ```
+    DATABASE_URL="postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+    ```
+
+    If you are not using the default credentials, update the connection string accordingly.
+
+4.  **Run the application:**
+
+    ```bash
+    go run main.go
+    ```
+
+5.  The server will start on port `3000` by default.
 
 ## API Endpoints
 
@@ -61,6 +97,7 @@ A RESTful API built with Go and Gin framework for managing events and user regis
 ### User Management
 
 - **POST /users/register** - Register a new user
+
   - Request body:
     ```json
     {
@@ -102,12 +139,19 @@ A RESTful API built with Go and Gin framework for managing events and user regis
 ### Event Management
 
 - **GET /events** - Get all events (public)
+
   - Response: Array of event objects
 
 - **GET /events/:id** - Get a specific event by ID (public)
+
   - Response: Event object
 
+- **GET /events/category/:category** - Get events by category (public)
+
+  - Response: Array of event objects
+
 - **POST /events** - Create a new event (protected, any authenticated user)
+
   - Headers: `Authorization: Bearer <token>`
   - Request body:
     ```json
@@ -115,25 +159,20 @@ A RESTful API built with Go and Gin framework for managing events and user regis
       "name": "New Event",
       "description": "This is a new event description",
       "location": "123 Event St, Event City, EC 12345",
-      "date": "2023-12-01T15:00:00Z"
+      "date": "2023-12-01T15:00:00Z",
+      "category": "Tech"
     }
     ```
   - Response:
     ```json
     {
       "message": "Event created successfully!",
-      "event": {
-        "id": 1,
-        "name": "New Event",
-        "description": "This is a new event description",
-        "location": "123 Event St, Event City, EC 12345",
-        "date": "2023-12-01T15:00:00Z",
-        "userIds": 1
-      }
+      "event": { ... }
     }
     ```
 
 - **PUT /events/:id** - Update an event (protected, owner or admin)
+
   - Headers: `Authorization: Bearer <token>`
   - Request body:
     ```json
@@ -141,21 +180,15 @@ A RESTful API built with Go and Gin framework for managing events and user regis
       "name": "Updated Event",
       "description": "This is an updated event description",
       "location": "456 Updated St, Updated City, UC 67890",
-      "date": "2023-12-15T16:00:00Z"
+      "date": "2023-12-15T16:00:00Z",
+      "category": "Health"
     }
     ```
   - Response:
     ```json
     {
       "message": "Event updated successfully!",
-      "event": {
-        "id": 1,
-        "name": "Updated Event",
-        "description": "This is an updated event description",
-        "location": "456 Updated St, Updated City, UC 67890",
-        "date": "2023-12-15T16:00:00Z",
-        "userIds": 1
-      }
+      "event": { ... }
     }
     ```
 
@@ -171,6 +204,7 @@ A RESTful API built with Go and Gin framework for managing events and user regis
 ### Event Registration
 
 - **POST /events/:id/register** - Register for an event (protected)
+
   - Headers: `Authorization: Bearer <token>`
   - Response:
     ```json
@@ -180,6 +214,7 @@ A RESTful API built with Go and Gin framework for managing events and user regis
     ```
 
 - **DELETE /events/:id/register** - Cancel registration for an event (protected)
+
   - Headers: `Authorization: Bearer <token>`
   - Response:
     ```json
@@ -187,6 +222,10 @@ A RESTful API built with Go and Gin framework for managing events and user regis
       "message": "Successfully cancelled event registration"
     }
     ```
+
+- **GET /events/registered** - Get all events a user is registered for (protected)
+  - Headers: `Authorization: Bearer <token>`
+  - Response: Array of event objects
 
 ### Admin Endpoints
 
@@ -208,12 +247,12 @@ Authorization: Bearer <admin-jwt-token>
 
 The API uses JWT (JSON Web Tokens) for authentication. To access protected endpoints:
 
-1. Register a user or login to get a JWT token
-2. Include the token in the Authorization header for protected requests:
-   - `Authorization: Bearer <token>` or
-   - `Authorization: <token>`
+1.  Register a user or login to get a JWT token
+2.  Include the token in the Authorization header for protected requests:
+    - `Authorization: Bearer <token>`
 
 ### User Roles
+
 - **user**: Can register/login, view and manage their own events, register for events.
 - **admin**: Has all user permissions plus access to admin endpoints for managing users.
 
