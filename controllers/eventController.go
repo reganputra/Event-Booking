@@ -3,12 +3,13 @@ package controllers
 import (
 	"database/sql"
 	"errors"
-	"github.com/gin-gonic/gin"
 	"go-rest-api/model"
 	"go-rest-api/services"
 	"log"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 type EventController struct {
@@ -51,6 +52,22 @@ func (c *EventController) GetAllEvents(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get events"})
 		return
 	}
+	ctx.JSON(http.StatusOK, events)
+}
+
+func (c *EventController) GetEventsByCategory(ctx *gin.Context) {
+	category := ctx.Param("category")
+	if category == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Category parameter is required"})
+		return
+	}
+
+	events, err := c.eventService.GetEventsByCategory(ctx, category)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get events by category"})
+		return
+	}
+
 	ctx.JSON(http.StatusOK, events)
 }
 

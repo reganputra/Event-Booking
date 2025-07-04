@@ -11,6 +11,7 @@ type EventService interface {
 	CreateEvent(ctx context.Context, event *model.Event) error
 	GetAllEvents(ctx context.Context) ([]model.Event, error)
 	GetEventByID(ctx context.Context, id int64) (*model.Event, error)
+	GetEventsByCategory(ctx context.Context, category string) ([]model.Event, error)
 	UpdateEvent(ctx context.Context, event *model.Event, userID int64, userRole string) error
 	DeleteEvent(ctx context.Context, id int64, userID int64, userRole string) error
 	RegisterForEvent(ctx context.Context, eventID, userID int64) error
@@ -88,4 +89,8 @@ func (s *eventService) CancelEventRegistration(ctx context.Context, eventID, use
 
 func (s *eventService) GetRegisteredEvents(ctx context.Context, userID int64) ([]model.Event, error) {
 	return s.eventRepository.GetRegisteredEventByUserId(ctx, userID)
+}
+
+func (s *eventService) GetEventsByCategory(ctx context.Context, category string) ([]model.Event, error) {
+	return s.eventRepository.GetEventsByCategory(ctx, category)
 }
