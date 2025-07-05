@@ -71,7 +71,6 @@ func (r *sqliteEventRepository) IsUserRegistered(ctx context.Context, eventID in
 	return exists, nil
 }
 
-
 func (r *sqliteEventRepository) GetAllEvents(ctx context.Context) ([]model.Event, error) {
 	log.Println("Getting all events from database")
 
@@ -285,8 +284,7 @@ func (r *sqliteEventRepository) GetEventsByCriteria(ctx context.Context, keyword
 	argId := 1
 
 	if keyword != "" {
-		// PostgreSQL uses ILIKE for case-insensitive search. For SQLite, use LIKE and ensure keywords are lower/upper cased if needed, or use COLLATE NOCASE on schema.
-		// Assuming PostgreSQL or similar that supports ILIKE.
+
 		query += fmt.Sprintf(" AND (name ILIKE $%d OR description ILIKE $%d)", argId, argId)
 		args = append(args, "%"+keyword+"%")
 		argId++

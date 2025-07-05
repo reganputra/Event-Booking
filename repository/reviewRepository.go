@@ -11,7 +11,6 @@ type ReviewRepository interface {
 	SaveReview(ctx context.Context, review *model.Review) error
 	GetReviewsByEventID(ctx context.Context, eventID int64) ([]model.Review, error)
 	GetReviewByEventAndUser(ctx context.Context, eventID int64, userID int64) (*model.Review, error)
-	// Potentially: UpdateReview, DeleteReview if needed later
 }
 
 type sqliteReviewRepository struct {

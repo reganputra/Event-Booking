@@ -23,13 +23,13 @@ type EventService interface {
 }
 
 type eventService struct {
-	eventRepository    repository.EventRepository
+	eventRepository repository.EventRepository
 	waitlistService WaitlistService // Added to call ProcessNextOnWaitlist
 }
 
 func NewEventService(eventRepository repository.EventRepository, waitlistService WaitlistService) EventService {
 	return &eventService{
-		eventRepository:    eventRepository,
+		eventRepository: eventRepository,
 		waitlistService: waitlistService,
 	}
 }
@@ -61,19 +61,8 @@ func (s *eventService) UpdateEvent(ctx context.Context, event *model.Event, user
 	}
 	// Preserve existing capacity if not provided in update payload
 	if event.Capacity == 0 && existingEvent.Capacity > 0 { // Check if capacity is being explicitly set to 0 or just omitted
-		// If omitempty is used and Capacity is not in JSON, it will be 0.
-		// We need to decide if 0 means "unlimited" or "use existing".
-		// Assuming here if it's 0 in payload but was >0, it's an attempt to remove capacity limit,
-		// unless event.Capacity was not part of the request, then we should keep existingEvent.Capacity.
-		// This logic depends on how PATCH vs PUT is handled or how "omitempty" is interpreted by ShouldBindJSON.
-		// For simplicity, if event.Capacity is its zero value (0 for int) after binding, and existing was >0,
-		// we might want to keep existingEvent.Capacity.
-		// However, current model has `omitempty` and `gte=0`. If `capacity` is not in request, `event.Capacity` will be 0.
-		// If it *is* in request as 0, it means set to 0.
-		// This part might need more robust handling based on PATCH/PUT semantics.
-		// For now, if event.Capacity is 0 after binding, it's taken as is.
-	}
 
+	}
 
 	return s.eventRepository.Update(ctx, event)
 }
