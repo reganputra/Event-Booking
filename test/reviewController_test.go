@@ -135,6 +135,51 @@ func TestCreateReview(t *testing.T) {
 
 }
 
+func TestCreateReview_Unauthorized(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockService := new(MockReviewService) // No service calls should be made
+	reviewController := controllers.NewReviewController(mockService)
+	router := gin.New()
+	// Note: No auth middleware to simulate unauthenticated request
+	router.POST("/events/:id/reviews", reviewController.CreateReview)
+
+	t.Run("Review creation - unauthenticated", func(t *testing.T) {
+		reviewInput := model.Review{EventID: 1, Rating: 5, Comment: "Unauthorized comment"}
+		body, _ := json.Marshal(reviewInput)
+		req, _ := http.NewRequest(http.MethodPost, "/events/1/reviews", bytes.NewBuffer(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		var response gin.H
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "User ID not found in context", response["error"])
+		// No mock expectations to assert as the service should not be called
+	})
+}
+
+func TestGetReviewsForEvent_InvalidEventID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	mockService := new(MockReviewService) // No service calls should be made
+	reviewController := controllers.NewReviewController(mockService)
+	router := gin.New()
+	router.GET("/events/:id/reviews", reviewController.GetReviewsForEvent)
+
+	t.Run("Get reviews - invalid event ID format", func(t *testing.T) {
+		req, _ := http.NewRequest(http.MethodGet, "/events/invalid-id/reviews", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		var response gin.H
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Equal(t, "Invalid event ID format", response["error"])
+	})
+}
+
 func TestGetReviewsForEvent(t *testing.T) {
 	mockService := new(MockReviewService)
 	router := setupReviewRouter(mockService)
