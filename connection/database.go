@@ -4,12 +4,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
+	"os"
+
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	_ "github.com/jackc/pgx/v5/stdlib"
-	"log"
-	"os"
 )
 
 func DbConnect() *sql.DB {
@@ -52,7 +53,19 @@ func runMigrations(connectionString string) error {
 
 	err = m.Up()
 	if err != nil {
-		return fmt.Errorf("failed to apply migrations: %w", err)
+		var dirtyErr migrate.ErrDirty
+		if errors.As(err, &dirtyErr) {
+			log.Printf("Dirty database version %d found. Forcing to this version to clear the dirty state.", dirtyErr.Version)
+			if forceErr := m.Force(dirtyErr.Version); forceErr != nil {
+				return fmt.Errorf("failed to force migration version: %w", forceErr)
+			}
+			// After forcing, try to migrate up again.
+			log.Println("Retrying migrations after forcing version.")
+			err = m.Up()
+		}
 	}
-	return nil
+
+	// After all attempts, return the final error state.
+	// The caller will handle ErrNoChange.
+	return err
 }

@@ -209,7 +209,6 @@ func (r *sqliteEventRepository) GetRegisteredEventByUserId(ctx context.Context, 
 			e.dateTime,
 			e.user_id,
 			e.category,
-			e.average_rating,
 			e.capacity -- Add capacity
 		FROM events AS e
 		JOIN registrations AS r ON e.id = r.event_id
@@ -227,7 +226,7 @@ func (r *sqliteEventRepository) GetRegisteredEventByUserId(ctx context.Context, 
 	for rows.Next() {
 		var event model.Event
 		// Add capacity to scan
-		err := rows.Scan(&event.Id, &event.Name, &event.Description, &event.Location, &event.Date, &event.UserIds, &event.Category, &event.AverageRating, &event.Capacity)
+		err := rows.Scan(&event.Id, &event.Name, &event.Description, &event.Location, &event.Date, &event.UserIds, &event.Category, &event.Capacity)
 		if err != nil {
 			log.Printf("Error scanning registered event row: %v", err) // Log jika scan gagal
 			return nil, fmt.Errorf("failed to scan registered event row: %w", err)
