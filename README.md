@@ -1,6 +1,6 @@
 # Event Booking REST API
 
-A RESTful API built with Go and Gin framework for managing events and user registrations. This API allows users to create, view, update, and delete events, as well as register for events. Now supports user roles (admin and user) for enhanced access control.
+A RESTful API built with Go and Gin framework for managing events and user registrations. This API allows users to create, view, update, and delete events, as well as register for events. It includes features like event reviews, a waitlist system for full events, and enhanced search capabilities. It also supports user roles (admin and user) for enhanced access control.
 
 ## Table of Contents
 
@@ -27,7 +27,8 @@ A RESTful API built with Go and Gin framework for managing events and user regis
 - CRUD operations for events
 - Event registration functionality
 - Event search and filtering (by keyword, date range)
-- Event reviews and ratings
+- Event categorization
+- Event reviews and ratings (users must be registered for an event to review it)
 - Waitlist system for full events
 - Protected routes with middleware authentication and role-based authorization
 - PostgreSQL database for data storage
@@ -110,7 +111,7 @@ A RESTful API built with Go and Gin framework for managing events and user regis
       "password": "password123"
     }
     ```
-  - Response:
+  - Response (201 Created):
     ```json
     {
       "user": {
@@ -118,6 +119,12 @@ A RESTful API built with Go and Gin framework for managing events and user regis
         "email": "user@example.com",
         "role": "user"
       }
+    }
+    ```
+  - Response (409 Conflict):
+    ```json
+    {
+      "error": "email already registered"
     }
     ```
 
@@ -156,12 +163,19 @@ A RESTful API built with Go and Gin framework for managing events and user regis
   - Response: Array of event objects
 
 - **GET /events/search** - Search events by keyword, start date, or end date (public)
+
   - Query Parameters:
     - `keyword` (string, optional): Search term for event name or description.
     - `startDate` (string, optional, format: `YYYY-MM-DD`): Filter events starting on or after this date.
     - `endDate` (string, optional, format: `YYYY-MM-DD`): Filter events ending on or before this date.
   - Example: `/events/search?keyword=Workshop&startDate=2024-03-01`
-  - Response: Array of event objects
+    - Response: Array of event objects. If no events are found, returns:
+      ```json
+      {
+        "message": "No events found matching your criteria",
+        "events": []
+      }
+      ```
 
 - **POST /events** - Create a new event (protected, any authenticated user)
 
@@ -174,10 +188,10 @@ A RESTful API built with Go and Gin framework for managing events and user regis
       "location": "123 Event St, Event City, EC 12345",
       "date": "2023-12-01T15:00:00Z",
       "category": "Tech",
-      "capacity": 50  // Optional: Maximum number of attendees. 0 or omitted for unlimited.
+      "capacity": 50 // Optional: Maximum number of attendees. 0 or omitted for unlimited.
     }
     ```
-  - Response:
+  - Response (201 Created):
     ```json
     {
       "message": "Event created successfully!",
@@ -220,16 +234,22 @@ A RESTful API built with Go and Gin framework for managing events and user regis
 - **POST /events/:id/register** - Register for an event (protected)
 
   - Headers: `Authorization: Bearer <token>`
-  - Response:
+  - Response (200 OK):
     ```json
     {
       "message": "Successfully registered for the event"
     }
     ```
-  - Note: If the event is full and has a capacity set, this might return a 202 Accepted with a message like:
+  - Response (202 Accepted): If the event is full and has a capacity set.
     ```json
     {
       "message": "event is full, user added to waitlist"
+    }
+    ```
+  - Response (409 Conflict): If the user is already registered.
+    ```json
+    {
+      "error": "you are already registered for this event"
     }
     ```
 
@@ -250,7 +270,8 @@ A RESTful API built with Go and Gin framework for managing events and user regis
 ### Event Reviews
 
 - **POST /events/:id/reviews** - Create a review for an event (protected)
-  - User must be authenticated. (Future enhancement: ensure user was registered for the event).
+
+  - User must be authenticated and must have been registered for the event.
   - Headers: `Authorization: Bearer <token>`
   - Request body:
     ```json
@@ -263,50 +284,50 @@ A RESTful API built with Go and Gin framework for managing events and user regis
     ```json
     {
       "message": "Review created successfully",
-      "review": {
-        "id": 1,
-        "event_id": 123,
-        "user_id": 1,
-        "rating": 5,
-        "comment": "This was an amazing event!",
-        "created_at": "2024-03-15T10:00:00Z"
+      "review": { ... }
+    }
+    ```
+    - Response (409 Conflict):
+      ```json
+      {
+        "error": "you have already reviewed this event"
       }
-    }
-    ```
-  - Response (409 Conflict if already reviewed):
-    ```json
-    {
-      "error": "you have already reviewed this event"
-    }
-    ```
+      ```
+      or
+      ```json
+      {
+        "error": "user not registered for this event, cannot review"
+      }
+      ```
 
 - **GET /events/:id/reviews** - Get all reviews for a specific event (public)
-  - Response: Array of review objects. Each event object returned from `/events` or `/events/:id` will also now include an `average_rating` field.
+  - Response: Array of review objects. Each event object returned from `/events` or `/events/:id` will also now include an `average_rating` field. If no reviews are found, returns:
+    ```json
+    {
+      "message": "No reviews found for this event",
+      "reviews": []
+    }
+    ```
 
 ### Event Waitlist
 
 - **POST /events/:id/waitlist** - Join the waitlist for a full event (protected)
+
   - User must be authenticated.
-  - This endpoint should typically be called if `POST /events/:id/register` indicates the event is full and the user was added to the waitlist, or if a user explicitly wants to join a known full event's waitlist.
+  - This endpoint should be called if `POST /events/:id/register` indicates the event is full, or if a user explicitly wants to join a known full event's waitlist.
   - Headers: `Authorization: Bearer <token>`
   - Response (201 Created):
     ```json
     {
       "message": "Successfully joined the waitlist",
-      "waitlist_entry": {
-        "id": 1,
-        "event_id": 123,
-        "user_id": 1,
-        "created_at": "2024-03-15T11:00:00Z"
-      }
+      "waitlist_entry": { ... }
     }
     ```
-  - Response (409 Conflict if various conditions not met, e.g., event not full, already registered, already on waitlist):
-    ```json
-    {
-      "error": "Specific error message like 'event is not full, cannot join waitlist'"
-    }
-    ```
+    - Response (409 Conflict): If conditions are not met. Error messages can include:
+      - `event is not full, cannot join waitlist`
+      - `you are already registered for this event`
+      - `you are already on the waitlist for this event`
+      - `waitlist not enabled for this event`
 
 - **DELETE /events/:id/waitlist** - Leave the waitlist for an event (protected)
   - User must be authenticated.
@@ -332,9 +353,16 @@ Admin endpoints require the user to have the `admin` role. Use the JWT token of 
 - **GET /admin/users/:id** - Get user by ID
 - **PUT /admin/users/:id** - Update a user (role and email)
 - **DELETE /admin/users/:id** - Delete a user
+  - Response (204 No Content)
 - **GET /admin/events/:id/waitlist** - Get the waitlist for a specific event (admin)
   - Headers: `Authorization: Bearer <admin-jwt-token>`
-  - Response: Array of waitlist entry objects.
+  - Response: Array of waitlist entry objects. If the waitlist is empty, returns:
+    ```json
+    {
+      "message": "Waitlist is empty for this event",
+      "waitlist": []
+    }
+    ```
 
 #### Example Admin Request
 
