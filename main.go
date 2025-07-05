@@ -29,12 +29,7 @@ func main() {
 	// Initialize the repository
 	eventRepo := repository.NewEventRepository(db)
 	userRepo := repository.NewUserRepository(db)
-	reviewRepo := repository.NewReviewRepository(db) // Add ReviewRepository
-
-	// Initialize the repository
-	eventRepo := repository.NewEventRepository(db)
-	userRepo := repository.NewUserRepository(db)
-	reviewRepo := repository.NewReviewRepository(db)
+	reviewRepo := repository.NewReviewRepository(db)     // Add ReviewRepository
 	waitlistRepo := repository.NewWaitlistRepository(db) // Add WaitlistRepository
 
 	// Initialize the service
@@ -77,10 +72,7 @@ func main() {
 		protectedRoutes.DELETE("/events/:id/register", eventController.CancelEventRegistration)
 		protectedRoutes.GET("/events/registered", eventController.GetRegisteredEvents)
 
-		// Review routes
 		protectedRoutes.POST("/events/:id/reviews", reviewController.CreateReview)
-		// Getting reviews can be public or protected. Let's make it public for now, adjust if needed.
-		// If it were to be protected (e.g. only registered users can see reviews), move it inside this group.
 
 		// Waitlist routes (Protected)
 		protectedRoutes.POST("/events/:id/waitlist", waitlistController.JoinWaitlist)
@@ -92,7 +84,6 @@ func main() {
 	}
 	// Public route for getting reviews for an event
 	router.GET("/events/:id/reviews", reviewController.GetReviewsForEvent)
-
 
 	adminRoutes := router.Group("/admin")
 	adminRoutes.Use(middleware.AuthMiddleware())
