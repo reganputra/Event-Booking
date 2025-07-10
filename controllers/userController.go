@@ -29,6 +29,11 @@ func (u *UserController) RegisterUser(c *gin.Context) {
 	var user model.User
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
+		validationErrors := utils.GetValidationErrors(err)
+		if validationErrors != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"errors": validationErrors})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
@@ -58,6 +63,11 @@ func (u *UserController) LoginUser(c *gin.Context) {
 	var user model.User
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
+		validationErrors := utils.GetValidationErrors(err)
+		if validationErrors != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"errors": validationErrors})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
@@ -139,6 +149,11 @@ func (u *UserController) UpdateUser(c *gin.Context) {
 	var user model.User
 	err = c.ShouldBindJSON(&user)
 	if err != nil {
+		validationErrors := utils.GetValidationErrors(err)
+		if validationErrors != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"errors": validationErrors})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}

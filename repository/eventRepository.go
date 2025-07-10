@@ -169,33 +169,59 @@ func (r *sqliteEventRepository) DeleteEvent(ctx context.Context, id int64) error
 }
 
 func (r *sqliteEventRepository) RegisterEvent(ctx context.Context, eventId, userId int64) error {
-	insert := "INSERT INTO registrations (event_id, user_id) VALUES ($1, $2)"
-	stmt, err := r.db.PrepareContext(ctx, insert)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer stmt.Close()
+	defer tx.Rollback() // Rollback on any error
 
-	_, err = stmt.ExecContext(ctx, eventId, userId)
+	// Insert into registrations table
+	insertRegistration := "INSERT INTO registrations (event_id, user_id) VALUES ($1, $2)"
+	_, err = tx.ExecContext(ctx, insertRegistration, eventId, userId)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to insert registration: %w", err)
 	}
-	return nil
+
+	// Decrement event capacity
+	updateCapacity := "UPDATE events SET capacity = capacity - 1 WHERE id = $1"
+	_, err = tx.ExecContext(ctx, updateCapacity, eventId)
+	if err != nil {
+		return fmt.Errorf("failed to update event capacity: %w", err)
+	}
+
+	return tx.Commit()
 }
 
 func (r *sqliteEventRepository) CancelRegistration(ctx context.Context, eventId, userId int64) error {
-	query := "DELETE FROM registrations WHERE event_id = $1 AND user_id = $2"
-	stmt, err := r.db.PrepareContext(ctx, query)
+	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer stmt.Close()
+	defer tx.Rollback()
 
-	_, err = stmt.ExecContext(ctx, eventId, userId)
+	// Delete the registration
+	deleteRegistration := "DELETE FROM registrations WHERE event_id = $1 AND user_id = $2"
+	result, err := tx.ExecContext(ctx, deleteRegistration, eventId, userId)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to delete registration: %w", err)
 	}
-	return nil
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("user not registered for this event")
+	}
+
+	// Increment event capacity
+	updateCapacity := "UPDATE events SET capacity = capacity + 1 WHERE id = $1"
+	_, err = tx.ExecContext(ctx, updateCapacity, eventId)
+	if err != nil {
+		return fmt.Errorf("failed to update event capacity: %w", err)
+	}
+
+	return tx.Commit()
 }
 
 func (r *sqliteEventRepository) GetRegisteredEventByUserId(ctx context.Context, userId int64) ([]model.Event, error) {

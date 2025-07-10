@@ -5,6 +5,7 @@ import (
 	"errors"
 	"go-rest-api/model"
 	"go-rest-api/services"
+	"go-rest-api/utils"
 	"log"
 	"net/http"
 	"strconv"
@@ -37,7 +38,12 @@ func (c *ReviewController) CreateReview(ctx *gin.Context) {
 
 	var review model.Review
 	if err := ctx.ShouldBindJSON(&review); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		validationErrors := utils.GetValidationErrors(err)
+		if validationErrors != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"errors": validationErrors})
+			return
+		}
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
 

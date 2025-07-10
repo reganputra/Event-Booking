@@ -5,6 +5,7 @@ import (
 	"errors"
 	"go-rest-api/model"
 	"go-rest-api/services"
+	"go-rest-api/utils"
 	"log"
 	"net/http"
 	"strconv"
@@ -31,7 +32,12 @@ func (c *EventController) CreateEvent(ctx *gin.Context) {
 	var event model.Event
 	err := ctx.ShouldBindJSON(&event)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		validationErrors := utils.GetValidationErrors(err)
+		if validationErrors != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"errors": validationErrors})
+			return
+		}
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
 
@@ -135,7 +141,12 @@ func (c *EventController) UpdateEvent(ctx *gin.Context) {
 	var event model.Event
 	err = ctx.ShouldBindJSON(&event)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Could not update event"})
+		validationErrors := utils.GetValidationErrors(err)
+		if validationErrors != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"errors": validationErrors})
+			return
+		}
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
 
