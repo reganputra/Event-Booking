@@ -1,29 +1,26 @@
 package main
 
 import (
+	"go-rest-api/config"
 	"go-rest-api/connection"
 	"go-rest-api/controllers"
 	"go-rest-api/helper"
 	"go-rest-api/middleware"
 	"go-rest-api/repository"
 	"go-rest-api/services"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/joho/godotenv"
 )
 
 func main() {
 
-	// Load environment variables from .env file
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("Error loading .env file, using default environment variables")
-	}
+	// Load configuration
+	cfg := config.LoadConfig()
 
 	// Initialize the database connection
-	db := connection.DbConnect()
+	db, err := connection.DbConnect(cfg.DatabaseURL)
+	helper.PanicIfError(err)
 	defer db.Close()
 
 	// --- Dependency Injection ---
@@ -41,7 +38,7 @@ func main() {
 
 	// Initialize the controller
 	eventController := controllers.NewEventController(eventService)
-	userController := controllers.NewUserController(userService)
+	userController := controllers.NewUserController(userService, cfg.JWTSecret)
 	reviewController := controllers.NewReviewController(reviewService)
 	waitlistController := controllers.NewWaitlistController(waitlistService, eventService) // Add WaitlistController
 
@@ -65,7 +62,7 @@ func main() {
 	router.POST("/users/login", userController.LoginUser)
 
 	protectedRoutes := router.Group("/")
-	protectedRoutes.Use(middleware.AuthMiddleware())
+	protectedRoutes.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 	{
 		protectedRoutes.POST("/events", eventController.CreateEvent)
 		protectedRoutes.PUT("/events/:id", eventController.UpdateEvent)
@@ -85,7 +82,7 @@ func main() {
 	router.GET("/events/:id/reviews", reviewController.GetReviewsForEvent)
 
 	adminRoutes := router.Group("/admin")
-	adminRoutes.Use(middleware.AuthMiddleware())
+	adminRoutes.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 	adminRoutes.Use(middleware.AuthorizeRole("admin"))
 	{
 		adminRoutes.GET("/users", userController.GetAllUser)

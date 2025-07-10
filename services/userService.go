@@ -2,7 +2,7 @@ package services
 
 import (
 	"context"
-	"errors"
+	"go-rest-api/apperrors"
 	"go-rest-api/model"
 	"go-rest-api/repository"
 )
@@ -28,17 +28,14 @@ func NewUserService(userRepository repository.UserRepository) UserService {
 
 func (e *userService) CreateUser(ctx context.Context, user *model.User) error {
 	if user.Email == "" {
-		return errors.New("email is required")
+		return apperrors.ErrInvalidInput
 	}
 	if user.Password == "" {
-		return errors.New("password is required")
+		return apperrors.ErrInvalidInput
 	}
 
-	existingUser, _ := e.userRepository.GetByEmail(ctx, user.Email)
-	if existingUser != nil {
-		return errors.New("email already registered")
-	}
-
+	// The check for existing user is now handled by the repository,
+	// which returns apperrors.ErrAlreadyExists.
 	return e.userRepository.Create(ctx, user)
 }
 
@@ -47,28 +44,17 @@ func (e *userService) GetAllUsers(ctx context.Context) ([]model.User, error) {
 }
 
 func (e *userService) GetUserByID(ctx context.Context, id int64) (*model.User, error) {
-	user, err := e.userRepository.GetById(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	if user == nil {
-		return nil, errors.New("user not found")
-	}
-	return user, nil
+	// The repository now correctly returns apperrors.ErrNotFound.
+	return e.userRepository.GetById(ctx, id)
 }
 
 func (e *userService) UpdateUser(ctx context.Context, user *model.User) error {
 	if user.Role != "user" && user.Role != "admin" {
-		return errors.New("invalid role")
+		return apperrors.ErrInvalidInput
 	}
 
-	existingUser, err := e.userRepository.GetById(ctx, user.Id)
-	if err != nil {
-		return err
-	}
-	if existingUser == nil {
-		return errors.New("user not found")
-	}
+	// The check for an existing user is handled by the repository,
+	// which returns apperrors.ErrNotFound.
 	return e.userRepository.Update(ctx, user)
 }
 

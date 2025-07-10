@@ -2,13 +2,12 @@ package utils
 
 import (
 	"errors"
-	"github.com/golang-jwt/jwt/v5"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
-const secretKey = "your_secret_key"
-
-func GenerateToken(email string, userId int64, role string) (string, error) {
+func GenerateToken(email string, userId int64, role string, secretKey string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"email":  email,
 		"userId": userId,
@@ -22,7 +21,7 @@ func GenerateToken(email string, userId int64, role string) (string, error) {
 	return tokenString, nil
 }
 
-func ValidateToken(token string) (int64, string, error) {
+func ValidateToken(token string, secretKey string) (int64, string, error) {
 	parse, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
 		_, ok := token.Method.(*jwt.SigningMethodHMAC)
 		if !ok {

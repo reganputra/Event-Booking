@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"go-rest-api/apperrors"
 	"go-rest-api/model"
 	"go-rest-api/utils"
 )
@@ -34,7 +35,7 @@ func (s *userRepository) Create(ctx context.Context, u *model.User) error {
 	query := "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id"
 	stmt, err := s.db.PrepareContext(ctx, query)
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	defer stmt.Close()
@@ -42,12 +43,12 @@ func (s *userRepository) Create(ctx context.Context, u *model.User) error {
 	row := stmt.QueryRowContext(ctx, u.Email, utils.HashPassword(u.Password))
 	err = row.Scan(&u.Id)
 	if err != nil {
-		if err.Error() == "UNIQUE constraint failed: users.email" {
-			return errors.New("email already registered")
+		// This is a simplified check. In a real-world application, you'd want to check for the specific database error code.
+		if err.Error() == "pq: duplicate key value violates unique constraint \"users_email_key\"" {
+			return apperrors.ErrAlreadyExists
 		}
-		// Handle other potential errors
 		if errors.Is(err, sql.ErrNoRows) {
-			return errors.New("failed to create user, no rows returned")
+			return apperrors.ErrInternalServer
 		}
 	}
 	return nil
@@ -84,7 +85,7 @@ func (s *userRepository) GetById(ctx context.Context, id int64) (*model.User, er
 	err := row.Scan(&user.Id, &user.Email, &user.Role)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New("user not found")
+			return nil, apperrors.ErrNotFound
 		}
 		return nil, err
 	}
@@ -99,7 +100,7 @@ func (s *userRepository) GetByEmail(ctx context.Context, email string) (*model.U
 	err := row.Scan(&user.Id, &user.Email, &user.Role)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, errors.New("user not found")
+			return nil, apperrors.ErrNotFound
 		}
 		return nil, err
 	}
@@ -126,8 +127,9 @@ func (s *userRepository) Update(ctx context.Context, u *model.User) error {
 
 	result, err := stmt.ExecContext(ctx, args...)
 	if err != nil {
-		if err.Error() == "UNIQUE constraint failed: users.email" {
-			return errors.New("email already registered")
+		// This is a simplified check. In a real-world application, you'd want to check for the specific database error code.
+		if err.Error() == "pq: duplicate key value violates unique constraint \"users_email_key\"" {
+			return apperrors.ErrAlreadyExists
 		}
 		return err
 	}
@@ -137,7 +139,7 @@ func (s *userRepository) Update(ctx context.Context, u *model.User) error {
 		return err
 	}
 	if rowsAffected == 0 {
-		return errors.New("user not found or no changes made")
+		return apperrors.ErrNotFound
 	}
 	return nil
 }
@@ -159,7 +161,7 @@ func (s *userRepository) Delete(ctx context.Context, id int64) error {
 		return err
 	}
 	if rowsAffected == 0 {
-		return errors.New("user not found")
+		return apperrors.ErrNotFound
 	}
 	return nil
 }
@@ -173,14 +175,14 @@ func (s *userRepository) Validate(ctx context.Context, u *model.User) error {
 	err := row.Scan(&u.Id, &retrievedPassword, &retrievedRole)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return errors.New("user not found")
+			return apperrors.ErrNotFound
 		}
 		return err
 	}
 
 	passwordIsValid := utils.CheckPasswordHash(u.Password, retrievedPassword)
 	if !passwordIsValid {
-		return errors.New("invalid Credentials")
+		return apperrors.ErrUnauthorized
 	}
 	u.Password = retrievedPassword
 	u.Role = retrievedRole
