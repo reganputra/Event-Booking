@@ -28,7 +28,7 @@ func (c *ReviewController) CreateReview(ctx *gin.Context) {
 	}
 	userID := userIDVal.(int64)
 
-	eventIDStr := ctx.Param("id") // Assuming event ID is part of the path, e.g., /events/:id/reviews
+	eventIDStr := ctx.Param("id")
 	eventID, err := strconv.ParseInt(eventIDStr, 10, 64)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID format"})

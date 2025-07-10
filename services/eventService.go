@@ -103,8 +103,6 @@ func (s *eventService) RegisterForEvent(ctx context.Context, eventID, userID int
 		}
 		if registrationCount >= event.Capacity {
 			// Event is full, try adding to waitlist via WaitlistService
-			// This introduces a dependency from EventService to WaitlistService for this path.
-			// Alternatively, controller could orchestrate this.
 			log.Printf("Event %d is full. Attempting to add user %d to waitlist.", eventID, userID)
 			_, wlErr := s.waitlistService.JoinWaitlist(ctx, eventID, userID)
 			if wlErr != nil {
@@ -119,30 +117,45 @@ func (s *eventService) RegisterForEvent(ctx context.Context, eventID, userID int
 }
 
 func (s *eventService) CancelEventRegistration(ctx context.Context, eventID, userID int64) error {
-	_, err := s.eventRepository.GetEventById(ctx, eventID)
+	// Get event details before cancellation
+	event, err := s.eventRepository.GetEventById(ctx, eventID)
 	if err != nil {
 		return err // Event not found
 	}
 
+	// Check if the event is currently at full capacity
+	registrationCount, err := s.eventRepository.GetRegistrationCount(ctx, eventID)
+	if err != nil {
+		return fmt.Errorf("failed to get registration count: %w", err)
+	}
+
+	// Determine if the event is currently at full capacity
+	isFull := event.Capacity > 0 && registrationCount >= event.Capacity
+
+	// Cancel the registration
 	err = s.eventRepository.CancelRegistration(ctx, eventID, userID)
 	if err != nil {
 		return err // Failed to cancel or user wasn't registered
 	}
 
-	// After successful cancellation, try to process the waitlist for this event.
-	// Run in a goroutine to avoid blocking the cancellation response.
-	go func() {
-		log.Printf("Processing waitlist for event %d after a cancellation.", eventID)
-		promotedUser, err := s.waitlistService.ProcessNextOnWaitlist(context.Background(), eventID)
-		if err != nil {
-			log.Printf("Error processing waitlist for event %d after cancellation: %v", eventID, err)
-		} else if promotedUser != nil {
-			log.Printf("User %s (ID: %d) was promoted from waitlist for event %d.", promotedUser.Email, promotedUser.Id, eventID)
-			// Potentially send notification here if not handled by ProcessNextOnWaitlist internally
-		} else {
-			log.Printf("No user promoted from waitlist for event %d, or waitlist was empty.", eventID)
-		}
-	}()
+	// Only process the waitlist if the event was at full capacity before cancellation
+	if isFull {
+		// Run in a goroutine to avoid blocking the cancellation response
+		go func() {
+			log.Printf("Event %d was at full capacity. Processing waitlist after cancellation.", eventID)
+			promotedUser, err := s.waitlistService.ProcessNextOnWaitlist(context.Background(), eventID)
+			if err != nil {
+				log.Printf("Error processing waitlist for event %d after cancellation: %v", eventID, err)
+			} else if promotedUser != nil {
+				log.Printf("User %s (ID: %d) was promoted from waitlist for event %d.", promotedUser.Email, promotedUser.Id, eventID)
+				// Potentially send notification here if not handled by ProcessNextOnWaitlist internally
+			} else {
+				log.Printf("No user promoted from waitlist for event %d, or waitlist was empty.", eventID)
+			}
+		}()
+	} else {
+		log.Printf("Event %d was not at full capacity. No need to process waitlist.", eventID)
+	}
 
 	return nil
 }
@@ -156,7 +169,5 @@ func (s *eventService) GetEventsByCategory(ctx context.Context, category string)
 }
 
 func (s *eventService) GetEventsByCriteria(ctx context.Context, keyword string, startDate string, endDate string) ([]model.Event, error) {
-	// Add any business logic validation for search terms if needed here
-	// For example, validating date formats, keyword length, etc.
 	return s.eventRepository.GetEventsByCriteria(ctx, keyword, startDate, endDate)
 }

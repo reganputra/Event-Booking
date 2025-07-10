@@ -74,7 +74,6 @@ func (r *sqliteEventRepository) IsUserRegistered(ctx context.Context, eventID in
 func (r *sqliteEventRepository) GetAllEvents(ctx context.Context) ([]model.Event, error) {
 	log.Println("Getting all events from database")
 
-	// First, check the table schema to debug
 	schemaQuery := "SELECT column_name FROM information_schema.columns WHERE table_name = 'events' ORDER BY ordinal_position"
 	schemaRows, err := r.db.QueryContext(ctx, schemaQuery)
 	if err != nil {
@@ -88,7 +87,7 @@ func (r *sqliteEventRepository) GetAllEvents(ctx context.Context) ([]model.Event
 			log.Printf("- %s", columnName)
 		}
 	}
-	// Ensure all columns including 'capacity' are selected
+
 	query := "SELECT id, name, description, location, dateTime, user_id, category, average_rating, capacity FROM events"
 	log.Printf("Executing query: %s", query)
 	rows, err := r.db.QueryContext(ctx, query)
@@ -102,7 +101,7 @@ func (r *sqliteEventRepository) GetAllEvents(ctx context.Context) ([]model.Event
 	log.Println("Scanning rows...")
 	for rows.Next() {
 		var event model.Event
-		// Add capacity to scan
+
 		err := rows.Scan(&event.Id, &event.Name, &event.Description, &event.Location, &event.Date, &event.UserIds, &event.Category, &event.AverageRating, &event.Capacity)
 		if err != nil {
 			log.Printf("Error scanning row: %v", err)
@@ -121,12 +120,12 @@ func (r *sqliteEventRepository) GetAllEvents(ctx context.Context) ([]model.Event
 }
 
 func (r *sqliteEventRepository) GetEventById(ctx context.Context, id int64) (*model.Event, error) {
-	// Ensure all columns including 'capacity' are selected
+
 	query := "SELECT id, name, description, location, dateTime, user_id, category, average_rating, capacity FROM events WHERE id = $1"
 	row := r.db.QueryRowContext(ctx, query, id)
 
 	var event model.Event
-	// Add capacity to scan
+
 	err := row.Scan(&event.Id, &event.Name, &event.Description, &event.Location, &event.Date, &event.UserIds, &event.Category, &event.AverageRating, &event.Capacity)
 	if err != nil {
 		return nil, err
@@ -136,7 +135,7 @@ func (r *sqliteEventRepository) GetEventById(ctx context.Context, id int64) (*mo
 }
 
 func (r *sqliteEventRepository) Update(ctx context.Context, event *model.Event) error {
-	// Note: average_rating is not updated here, it's handled by UpdateAverageRating
+	// average_rating is not updated here, it's handled by UpdateAverageRating
 	// Include capacity in the UPDATE statement
 	updateQuery := "UPDATE events SET name = $1, description = $2, location = $3, dateTime = $4, category = $5, capacity = $6 WHERE id = $7"
 	stmt, err := r.db.PrepareContext(ctx, updateQuery)
@@ -225,26 +224,26 @@ func (r *sqliteEventRepository) GetRegisteredEventByUserId(ctx context.Context, 
 	log.Printf("Querying registered events for user ID: %d", userId)
 	for rows.Next() {
 		var event model.Event
-		// Add capacity to scan
+
 		err := rows.Scan(&event.Id, &event.Name, &event.Description, &event.Location, &event.Date, &event.UserIds, &event.Category, &event.Capacity)
 		if err != nil {
-			log.Printf("Error scanning registered event row: %v", err) // Log jika scan gagal
+			log.Printf("Error scanning registered event row: %v", err)
 			return nil, fmt.Errorf("failed to scan registered event row: %w", err)
 		}
 		events = append(events, event)
-		log.Printf("Scanned event: %+v", event) // Log jika event berhasil di-scan
+		log.Printf("Scanned event: %+v", event)
 	}
 
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating registered event rows: %w", err)
 	}
-	log.Printf("Finished scanning. Total events found: %d", len(events)) // Log jumlah event yang ditemukan
+	log.Printf("Finished scanning. Total events found: %d", len(events))
 	return events, nil
 }
 
 func (r *sqliteEventRepository) GetEventsByCategory(ctx context.Context, category string) ([]model.Event, error) {
 	log.Printf("Getting events with category: %s", category)
-	// Ensure all columns including 'capacity' are selected
+
 	query := "SELECT id, name, description, location, dateTime, user_id, category, average_rating, capacity FROM events WHERE category = $1"
 	log.Printf("Executing query: %s with category=%s", query, category)
 	rows, err := r.db.QueryContext(ctx, query, category)
@@ -258,7 +257,7 @@ func (r *sqliteEventRepository) GetEventsByCategory(ctx context.Context, categor
 	log.Println("Scanning category rows...")
 	for rows.Next() {
 		var event model.Event
-		// Add capacity to scan
+
 		err := rows.Scan(&event.Id, &event.Name, &event.Description, &event.Location, &event.Date, &event.UserIds, &event.Category, &event.AverageRating, &event.Capacity)
 		if err != nil {
 			log.Printf("Error scanning category row: %v", err)
@@ -277,7 +276,7 @@ func (r *sqliteEventRepository) GetEventsByCategory(ctx context.Context, categor
 }
 
 func (r *sqliteEventRepository) GetEventsByCriteria(ctx context.Context, keyword string, startDate string, endDate string) ([]model.Event, error) {
-	// Ensure all columns including 'capacity' are selected
+
 	query := "SELECT id, name, description, location, dateTime, user_id, category, average_rating, capacity FROM events WHERE 1=1"
 	args := []interface{}{}
 	argId := 1
@@ -312,7 +311,7 @@ func (r *sqliteEventRepository) GetEventsByCriteria(ctx context.Context, keyword
 	log.Println("Scanning search result rows...")
 	for rows.Next() {
 		var event model.Event
-		// Add capacity to scan
+
 		err := rows.Scan(&event.Id, &event.Name, &event.Description, &event.Location, &event.Date, &event.UserIds, &event.Category, &event.AverageRating, &event.Capacity)
 		if err != nil {
 			log.Printf("Error scanning search row: %v", err)

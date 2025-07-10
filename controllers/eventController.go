@@ -60,10 +60,6 @@ func (c *EventController) SearchEvents(ctx *gin.Context) {
 	startDate := ctx.Query("startDate") // Expected format: YYYY-MM-DD
 	endDate := ctx.Query("endDate")     // Expected format: YYYY-MM-DD
 
-	// Basic validation for date formats (can be more robust)
-	// Consider using time.Parse to validate dates properly if strict format is required
-	// For now, we pass them as strings to the service/repository
-
 	events, err := c.eventService.GetEventsByCriteria(ctx, keyword, startDate, endDate)
 	if err != nil {
 		log.Printf("Error searching events: %v", err)
