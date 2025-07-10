@@ -53,14 +53,21 @@ A RESTful API built with Go and Gin framework for managing events and user regis
     cd go-rest-api
     ```
 
-2.  **Run the application with Docker Compose:**
+2.  **Create Environment File:**
+    Copy the example environment file to a new `.env` file. This file will contain your database connection string and JWT secret.
+
+    ```bash
+    cp .env.example .env
+    ```
+
+3.  **Run the application with Docker Compose:**
     This command will build the Go application and start the PostgreSQL database container.
 
     ```bash
     docker-compose up --build
     ```
 
-3.  The server will start on port `3000`, and the PostgreSQL database will be available on port `5432`.
+4.  The server will start on port `3000`, and the PostgreSQL database will be available on port `5432`.
 
 ### Local Installation
 
@@ -78,10 +85,17 @@ A RESTful API built with Go and Gin framework for managing events and user regis
     ```
 
 3.  **Set up Environment Variables:**
-    Create a `.env` file in the root directory and add the following environment variable for the database connection.
+    Create a `.env` file in the root directory by copying the example file.
+
+    ```bash
+    cp .env.example .env
+    ```
+
+    The `.env` file should contain the following variables:
 
     ```
     DATABASE_URL="postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
+    JWT_SECRET="your-super-secret-key"
     ```
 
     If you are not using the default credentials, update the connection string accordingly.
