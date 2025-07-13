@@ -8,9 +8,9 @@ import (
 	"go-rest-api/utils"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type EventController struct {
@@ -27,7 +27,7 @@ func (c *EventController) CreateEvent(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context. Authentication issue."})
 		return
 	}
-	userID := userIDVal.(int64)
+	userID := userIDVal.(uuid.UUID)
 
 	var event model.Event
 	err := ctx.ShouldBindJSON(&event)
@@ -99,7 +99,7 @@ func (c *EventController) GetEventsByCategory(ctx *gin.Context) {
 
 func (c *EventController) GetEventByID(ctx *gin.Context) {
 	id := ctx.Param("id")
-	eventID, err := strconv.ParseInt(id, 10, 64)
+	eventID, err := uuid.Parse(id)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
 		return
@@ -123,7 +123,7 @@ func (c *EventController) UpdateEvent(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context. Authentication issue."})
 		return
 	}
-	userID := userIDVal.(int64)
+	userID := userIDVal.(uuid.UUID)
 	userRoleVal, exists := ctx.Get("userRole")
 	if !exists {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User role not found in context. Authentication issue."})
@@ -132,7 +132,7 @@ func (c *EventController) UpdateEvent(ctx *gin.Context) {
 	userRole := userRoleVal.(string)
 
 	id := ctx.Param("id")
-	eventID, err := strconv.ParseInt(id, 10, 64)
+	eventID, err := uuid.Parse(id)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
 		return
@@ -170,7 +170,7 @@ func (c *EventController) DeleteEvent(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context. Authentication issue."})
 		return
 	}
-	userID := userIDVal.(int64)
+	userID := userIDVal.(uuid.UUID)
 	userRoleVal, exists := ctx.Get("userRole")
 	if !exists {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User role not found in context. Authentication issue."})
@@ -179,7 +179,7 @@ func (c *EventController) DeleteEvent(ctx *gin.Context) {
 	userRole := userRoleVal.(string)
 
 	id := ctx.Param("id")
-	eventID, err := strconv.ParseInt(id, 10, 64)
+	eventID, err := uuid.Parse(id)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
 		return
@@ -206,10 +206,10 @@ func (c *EventController) RegisterForEvent(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context. Authentication issue."})
 		return
 	}
-	userID := userIDVal.(int64)
+	userID := userIDVal.(uuid.UUID)
 
 	id := ctx.Param("id")
-	eventID, err := strconv.ParseInt(id, 10, 64)
+	eventID, err := uuid.Parse(id)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
 		return
@@ -240,9 +240,9 @@ func (c *EventController) CancelEventRegistration(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context. Authentication issue."})
 		return
 	}
-	userID := userIDVal.(int64)
+	userID := userIDVal.(uuid.UUID)
 	id := ctx.Param("id")
-	eventID, err := strconv.ParseInt(id, 10, 64)
+	eventID, err := uuid.Parse(id)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid ID format"})
 		return
@@ -263,7 +263,7 @@ func (c *EventController) GetRegisteredEvents(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context. Authentication issue."})
 		return
 	}
-	userID := userIDVal.(int64)
+	userID := userIDVal.(uuid.UUID)
 
 	events, err := c.eventService.GetRegisteredEvents(ctx, userID)
 	if err != nil {

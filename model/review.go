@@ -2,13 +2,15 @@ package model
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type Review struct {
-	Id        int64     `json:"id"`
-	EventID   int64     `json:"event_id"`
-	UserID    int64     `json:"user_id"`                               // Should be set from authenticated user
-	Rating    int       `json:"rating" binding:"required,gte=1,lte=5"` // Rating from 1 to 5
+	Id        uuid.UUID `json:"id"`
+	EventID   uuid.UUID `json:"event_id"`
+	UserID    uuid.UUID `json:"user_id"`
+	Rating    int       `json:"rating" binding:"required,gte=1,lte=5"`
 	Comment   string    `json:"comment" binding:"required,min=10"`
 	CreatedAt time.Time `json:"created_at"`
 }

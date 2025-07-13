@@ -7,6 +7,8 @@ import (
 	"go-rest-api/model"
 	"go-rest-api/repository"
 	"log"
+
+	"github.com/google/uuid"
 )
 
 var ErrEventNotFull = errors.New("event is not full, cannot join waitlist")
@@ -16,12 +18,11 @@ var ErrEventNotFound = errors.New("event not found")
 var ErrUserNotOnWaitlist = errors.New("user is not on the waitlist for this event")
 var ErrWaitlistNotEnabled = errors.New("waitlist not enabled for this event (capacity is 0 or not set)")
 
-
 type WaitlistService interface {
-	JoinWaitlist(ctx context.Context, eventID int64, userID int64) (*model.WaitlistEntry, error)
-	LeaveWaitlist(ctx context.Context, eventID int64, userID int64) error
-	GetWaitlistForEvent(ctx context.Context, eventID int64) ([]model.WaitlistEntry, error)
-	ProcessNextOnWaitlist(ctx context.Context, eventID int64) (*model.User, error) // Returns user who was promoted/notified
+	JoinWaitlist(ctx context.Context, eventID uuid.UUID, userID uuid.UUID) (*model.WaitlistEntry, error)
+	LeaveWaitlist(ctx context.Context, eventID uuid.UUID, userID uuid.UUID) error
+	GetWaitlistForEvent(ctx context.Context, eventID uuid.UUID) ([]model.WaitlistEntry, error)
+	ProcessNextOnWaitlist(ctx context.Context, eventID uuid.UUID) (*model.User, error)
 }
 
 type waitlistService struct {
@@ -45,7 +46,7 @@ func NewWaitlistService(
 	}
 }
 
-func (s *waitlistService) JoinWaitlist(ctx context.Context, eventID int64, userID int64) (*model.WaitlistEntry, error) {
+func (s *waitlistService) JoinWaitlist(ctx context.Context, eventID uuid.UUID, userID uuid.UUID) (*model.WaitlistEntry, error) {
 	event, err := s.eventRepo.GetEventById(ctx, eventID)
 	if err != nil {
 		log.Printf("Error fetching event %d for waitlist join: %v", eventID, err)
@@ -87,7 +88,7 @@ func (s *waitlistService) JoinWaitlist(ctx context.Context, eventID int64, userI
 	return s.waitlistRepo.AddUserToWaitlist(ctx, eventID, userID)
 }
 
-func (s *waitlistService) LeaveWaitlist(ctx context.Context, eventID int64, userID int64) error {
+func (s *waitlistService) LeaveWaitlist(ctx context.Context, eventID uuid.UUID, userID uuid.UUID) error {
 	// Check if event exists (optional, FK constraint might cover it)
 	_, err := s.eventRepo.GetEventById(ctx, eventID)
 	if err != nil {
@@ -105,7 +106,7 @@ func (s *waitlistService) LeaveWaitlist(ctx context.Context, eventID int64, user
 	return s.waitlistRepo.RemoveUserFromWaitlist(ctx, eventID, userID)
 }
 
-func (s *waitlistService) GetWaitlistForEvent(ctx context.Context, eventID int64) ([]model.WaitlistEntry, error) {
+func (s *waitlistService) GetWaitlistForEvent(ctx context.Context, eventID uuid.UUID) ([]model.WaitlistEntry, error) {
 	_, err := s.eventRepo.GetEventById(ctx, eventID)
 	if err != nil {
 		return nil, ErrEventNotFound
@@ -118,8 +119,8 @@ func (s *waitlistService) GetWaitlistForEvent(ctx context.Context, eventID int64
 // - Actually register the user.
 // - Send a notification with a time limit to register.
 // - Handle cases where the next user is no longer interested.
-func (s *waitlistService) ProcessNextOnWaitlist(ctx context.Context, eventID int64) (*model.User, error) {
-	log.Printf("Processing next on waitlist for event ID %d", eventID)
+func (s *waitlistService) ProcessNextOnWaitlist(ctx context.Context, eventID uuid.UUID) (*model.User, error) {
+	log.Printf("Processing next on waitlist for event ID %s", eventID)
 	nextEntry, err := s.waitlistRepo.GetNextUserFromWaitlist(ctx, eventID)
 	if err != nil {
 		log.Printf("Error getting next user from waitlist for event %d: %v", eventID, err)

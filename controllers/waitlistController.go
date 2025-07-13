@@ -6,9 +6,9 @@ import (
 	"go-rest-api/services"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type WaitlistController struct {
@@ -30,10 +30,10 @@ func (c *WaitlistController) JoinWaitlist(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
 		return
 	}
-	userID := userIDVal.(int64)
+	userID := userIDVal.(uuid.UUID)
 
 	eventIDStr := ctx.Param("id")
-	eventID, err := strconv.ParseInt(eventIDStr, 10, 64)
+	eventID, err := uuid.Parse(eventIDStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID format"})
 		return
@@ -64,10 +64,10 @@ func (c *WaitlistController) LeaveWaitlist(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
 		return
 	}
-	userID := userIDVal.(int64)
+	userID := userIDVal.(uuid.UUID)
 
 	eventIDStr := ctx.Param("id")
-	eventID, err := strconv.ParseInt(eventIDStr, 10, 64)
+	eventID, err := uuid.Parse(eventIDStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID format"})
 		return
@@ -95,9 +95,9 @@ func (c *WaitlistController) GetWaitlistForEvent(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
 		return
 	}
-	userID := userIDVal.(int64)
+	userID := userIDVal.(uuid.UUID)
 
-	userRoleVal, exists := ctx.Get("role")
+	userRoleVal, exists := ctx.Get("userRole")
 	if !exists {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User role not found in context"})
 		return
@@ -105,7 +105,7 @@ func (c *WaitlistController) GetWaitlistForEvent(ctx *gin.Context) {
 	userRole := userRoleVal.(string)
 
 	eventIDStr := ctx.Param("id")
-	eventID, err := strconv.ParseInt(eventIDStr, 10, 64)
+	eventID, err := uuid.Parse(eventIDStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID format"})
 		return

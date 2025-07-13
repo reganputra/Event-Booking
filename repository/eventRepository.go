@@ -6,22 +6,24 @@ import (
 	"fmt"
 	"go-rest-api/model"
 	"log"
+
+	"github.com/google/uuid"
 )
 
 type EventRepository interface {
 	Save(ctx context.Context, event *model.Event) error
 	GetAllEvents(ctx context.Context) ([]model.Event, error)
-	GetEventById(ctx context.Context, id int64) (*model.Event, error)
+	GetEventById(ctx context.Context, id uuid.UUID) (*model.Event, error)
 	GetEventsByCategory(ctx context.Context, category string) ([]model.Event, error)
 	GetEventsByCriteria(ctx context.Context, keyword string, startDate string, endDate string) ([]model.Event, error)
-	UpdateAverageRating(ctx context.Context, eventID int64, avgRating float64) error
+	UpdateAverageRating(ctx context.Context, eventID uuid.UUID, avgRating float64) error
 	Update(ctx context.Context, event *model.Event) error
-	DeleteEvent(ctx context.Context, id int64) error
-	RegisterEvent(ctx context.Context, eventID, userID int64) error
-	GetRegistrationCount(ctx context.Context, eventID int64) (int, error)
-	IsUserRegistered(ctx context.Context, eventID int64, userID int64) (bool, error)
-	CancelRegistration(ctx context.Context, eventID, userID int64) error
-	GetRegisteredEventByUserId(ctx context.Context, userId int64) ([]model.Event, error)
+	DeleteEvent(ctx context.Context, id uuid.UUID) error
+	RegisterEvent(ctx context.Context, eventID, userID uuid.UUID) error
+	GetRegistrationCount(ctx context.Context, eventID uuid.UUID) (int, error)
+	IsUserRegistered(ctx context.Context, eventID uuid.UUID, userID uuid.UUID) (bool, error)
+	CancelRegistration(ctx context.Context, eventID, userID uuid.UUID) error
+	GetRegisteredEventByUserId(ctx context.Context, userId uuid.UUID) ([]model.Event, error)
 }
 
 type sqliteEventRepository struct {
@@ -34,24 +36,18 @@ func NewEventRepository(db *sql.DB) EventRepository {
 
 func (r *sqliteEventRepository) Save(ctx context.Context, event *model.Event) error {
 
+	event.Id = uuid.New()
 	// Include capacity in the INSERT statement
-	insert := "INSERT INTO events (name, description, location, dateTime, category, user_id, capacity) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id"
-	stmt, err := r.db.PrepareContext(ctx, insert)
+	insert := "INSERT INTO events (id, name, description, location, dateTime, category, user_id, capacity) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
+	_, err := r.db.ExecContext(ctx, insert, event.Id, event.Name, event.Description, event.Location, event.Date, event.Category, event.UserIds, event.Capacity)
 	if err != nil {
-		return fmt.Errorf("failed to prepare statement for event save: %w", err)
-	}
-	defer stmt.Close()
-
-	row := stmt.QueryRowContext(ctx, event.Name, event.Description, event.Location, event.Date, event.Category, event.UserIds, event.Capacity)
-	err = row.Scan(&event.Id)
-	if err != nil {
-		return fmt.Errorf("failed to execute statement and scan ID for event save: %w", err)
+		return fmt.Errorf("failed to execute statement for event save: %w", err)
 	}
 
 	return nil
 }
 
-func (r *sqliteEventRepository) GetRegistrationCount(ctx context.Context, eventID int64) (int, error) {
+func (r *sqliteEventRepository) GetRegistrationCount(ctx context.Context, eventID uuid.UUID) (int, error) {
 	query := "SELECT COUNT(*) FROM registrations WHERE event_id = $1"
 	var count int
 	err := r.db.QueryRowContext(ctx, query, eventID).Scan(&count)
@@ -61,7 +57,7 @@ func (r *sqliteEventRepository) GetRegistrationCount(ctx context.Context, eventI
 	return count, nil
 }
 
-func (r *sqliteEventRepository) IsUserRegistered(ctx context.Context, eventID int64, userID int64) (bool, error) {
+func (r *sqliteEventRepository) IsUserRegistered(ctx context.Context, eventID uuid.UUID, userID uuid.UUID) (bool, error) {
 	query := "SELECT EXISTS(SELECT 1 FROM registrations WHERE event_id = $1 AND user_id = $2)"
 	var exists bool
 	err := r.db.QueryRowContext(ctx, query, eventID, userID).Scan(&exists)
@@ -119,7 +115,7 @@ func (r *sqliteEventRepository) GetAllEvents(ctx context.Context) ([]model.Event
 	return events, nil
 }
 
-func (r *sqliteEventRepository) GetEventById(ctx context.Context, id int64) (*model.Event, error) {
+func (r *sqliteEventRepository) GetEventById(ctx context.Context, id uuid.UUID) (*model.Event, error) {
 
 	query := "SELECT id, name, description, location, dateTime, user_id, category, average_rating, capacity FROM events WHERE id = $1"
 	row := r.db.QueryRowContext(ctx, query, id)
@@ -152,7 +148,7 @@ func (r *sqliteEventRepository) Update(ctx context.Context, event *model.Event) 
 	return nil
 }
 
-func (r *sqliteEventRepository) DeleteEvent(ctx context.Context, id int64) error {
+func (r *sqliteEventRepository) DeleteEvent(ctx context.Context, id uuid.UUID) error {
 	query := "DELETE FROM events WHERE id = $1"
 	stmt, err := r.db.PrepareContext(ctx, query)
 	if err != nil {
@@ -168,7 +164,7 @@ func (r *sqliteEventRepository) DeleteEvent(ctx context.Context, id int64) error
 	return nil
 }
 
-func (r *sqliteEventRepository) RegisterEvent(ctx context.Context, eventId, userId int64) error {
+func (r *sqliteEventRepository) RegisterEvent(ctx context.Context, eventId, userId uuid.UUID) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -176,8 +172,8 @@ func (r *sqliteEventRepository) RegisterEvent(ctx context.Context, eventId, user
 	defer tx.Rollback() // Rollback on any error
 
 	// Insert into registrations table
-	insertRegistration := "INSERT INTO registrations (event_id, user_id) VALUES ($1, $2)"
-	_, err = tx.ExecContext(ctx, insertRegistration, eventId, userId)
+	insertRegistration := "INSERT INTO registrations (id, event_id, user_id) VALUES ($1, $2, $3)"
+	_, err = tx.ExecContext(ctx, insertRegistration, uuid.New(), eventId, userId)
 	if err != nil {
 		return fmt.Errorf("failed to insert registration: %w", err)
 	}
@@ -192,7 +188,7 @@ func (r *sqliteEventRepository) RegisterEvent(ctx context.Context, eventId, user
 	return tx.Commit()
 }
 
-func (r *sqliteEventRepository) CancelRegistration(ctx context.Context, eventId, userId int64) error {
+func (r *sqliteEventRepository) CancelRegistration(ctx context.Context, eventId, userId uuid.UUID) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
@@ -224,7 +220,7 @@ func (r *sqliteEventRepository) CancelRegistration(ctx context.Context, eventId,
 	return tx.Commit()
 }
 
-func (r *sqliteEventRepository) GetRegisteredEventByUserId(ctx context.Context, userId int64) ([]model.Event, error) {
+func (r *sqliteEventRepository) GetRegisteredEventByUserId(ctx context.Context, userId uuid.UUID) ([]model.Event, error) {
 	query := `
 		SELECT
 			e.id,
@@ -355,7 +351,7 @@ func (r *sqliteEventRepository) GetEventsByCriteria(ctx context.Context, keyword
 	return events, nil
 }
 
-func (r *sqliteEventRepository) UpdateAverageRating(ctx context.Context, eventID int64, avgRating float64) error {
+func (r *sqliteEventRepository) UpdateAverageRating(ctx context.Context, eventID uuid.UUID, avgRating float64) error {
 	query := "UPDATE events SET average_rating = $1 WHERE id = $2"
 	stmt, err := r.db.PrepareContext(ctx, query)
 	if err != nil {

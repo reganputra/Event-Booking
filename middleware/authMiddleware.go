@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
@@ -24,9 +25,15 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 		}
 
 		// Validate the token
-		userId, role, err := utils.ValidateToken(token, jwtSecret)
+		userIdStr, role, err := utils.ValidateToken(token, jwtSecret)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			return
+		}
+
+		userId, err := uuid.Parse(userIdStr)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid user ID in token"})
 			return
 		}
 

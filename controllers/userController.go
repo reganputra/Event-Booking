@@ -8,9 +8,9 @@ import (
 	"go-rest-api/services"
 	"go-rest-api/utils"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type UserController struct {
@@ -87,7 +87,7 @@ func (u *UserController) LoginUser(c *gin.Context) {
 		Role:  user.Role,
 	}
 
-	token, err := utils.GenerateToken(user.Email, user.Id, user.Role, u.jwtSecret)
+	token, err := utils.GenerateToken(user.Email, user.Id.String(), user.Role, u.jwtSecret)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
@@ -117,7 +117,7 @@ func (u *UserController) GetAllUser(c *gin.Context) {
 
 func (u *UserController) GetUserByID(c *gin.Context) {
 	idStr := c.Param("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
 		return
@@ -134,13 +134,14 @@ func (u *UserController) GetUserByID(c *gin.Context) {
 	userResponse := response.UserResponse{
 		Id:    user.Id,
 		Email: user.Email,
+		Role:  user.Role,
 	}
 	c.JSON(http.StatusOK, gin.H{"user": userResponse})
 }
 
 func (u *UserController) UpdateUser(c *gin.Context) {
 	idStr := c.Param("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
 		return
@@ -183,7 +184,7 @@ func (u *UserController) UpdateUser(c *gin.Context) {
 
 func (u *UserController) DeleteUser(c *gin.Context) {
 	idStr := c.Param("id")
-	id, err := strconv.ParseInt(idStr, 10, 64)
+	id, err := uuid.Parse(idStr)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid user ID format"})
 		return

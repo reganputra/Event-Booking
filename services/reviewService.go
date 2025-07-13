@@ -3,16 +3,18 @@ package services
 import (
 	"context"
 	"errors"
-	"go-rest-api/model"
 	"fmt" // Added for fmt.Errorf
+	"go-rest-api/model"
 	"go-rest-api/repository"
 	"log"
+
+	"github.com/google/uuid"
 )
 
 type ReviewService interface {
-	CreateReview(ctx context.Context, review *model.Review, userID int64) error
-	GetReviewsForEvent(ctx context.Context, eventID int64) ([]model.Review, error)
-	// CheckIfUserRegisteredForEvent(ctx context.Context, eventID int64, userID int64) (bool, error)
+	CreateReview(ctx context.Context, review *model.Review, userID uuid.UUID) error
+	GetReviewsForEvent(ctx context.Context, eventID uuid.UUID) ([]model.Review, error)
+	// CheckIfUserRegisteredForEvent(ctx context.Context, eventID uuid.UUID, userID uuid.UUID) (bool, error)
 }
 
 type reviewService struct {
@@ -27,7 +29,7 @@ func NewReviewService(reviewRepo repository.ReviewRepository, eventRepo reposito
 	}
 }
 
-func (s *reviewService) CreateReview(ctx context.Context, review *model.Review, userID int64) error {
+func (s *reviewService) CreateReview(ctx context.Context, review *model.Review, userID uuid.UUID) error {
 	// 1. Validate event exists (optional, could be FK constraint driven, but good for early feedback)
 	_, err := s.eventRepo.GetEventById(ctx, review.EventID)
 	if err != nil {
@@ -85,7 +87,7 @@ func (s *reviewService) CreateReview(ctx context.Context, review *model.Review, 
 	return nil
 }
 
-func (s *reviewService) GetReviewsForEvent(ctx context.Context, eventID int64) ([]model.Review, error) {
+func (s *reviewService) GetReviewsForEvent(ctx context.Context, eventID uuid.UUID) ([]model.Review, error) {
 	// Validate event exists (optional, as above)
 	_, err := s.eventRepo.GetEventById(ctx, eventID)
 	if err != nil {
@@ -95,7 +97,7 @@ func (s *reviewService) GetReviewsForEvent(ctx context.Context, eventID int64) (
 	return s.reviewRepo.GetReviewsByEventID(ctx, eventID)
 }
 
-func (s *reviewService) recalculateAndUpdateAverageRating(ctx context.Context, eventID int64) error {
+func (s *reviewService) recalculateAndUpdateAverageRating(ctx context.Context, eventID uuid.UUID) error {
 	reviews, err := s.reviewRepo.GetReviewsByEventID(ctx, eventID)
 	if err != nil {
 		return fmt.Errorf("failed to get reviews for recalculating average rating: %w", err)
@@ -106,7 +108,6 @@ func (s *reviewService) recalculateAndUpdateAverageRating(ctx context.Context, e
 	// might be cancelled if the client disconnects or the request times out,
 	// but we still want this background update to complete if possible.
 	updateCtx := context.Background()
-
 
 	if len(reviews) == 0 {
 		return s.eventRepo.UpdateAverageRating(updateCtx, eventID, 0) // Set to 0 if no reviews

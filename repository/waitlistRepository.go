@@ -6,14 +6,16 @@ import (
 	"fmt"
 	"go-rest-api/model"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type WaitlistRepository interface {
-	AddUserToWaitlist(ctx context.Context, eventID int64, userID int64) (*model.WaitlistEntry, error)
-	RemoveUserFromWaitlist(ctx context.Context, eventID int64, userID int64) error
-	GetWaitlistForEvent(ctx context.Context, eventID int64) ([]model.WaitlistEntry, error)
-	GetNextUserFromWaitlist(ctx context.Context, eventID int64) (*model.WaitlistEntry, error)
-	IsUserOnWaitlist(ctx context.Context, eventID int64, userID int64) (bool, error)
+	AddUserToWaitlist(ctx context.Context, eventID uuid.UUID, userID uuid.UUID) (*model.WaitlistEntry, error)
+	RemoveUserFromWaitlist(ctx context.Context, eventID uuid.UUID, userID uuid.UUID) error
+	GetWaitlistForEvent(ctx context.Context, eventID uuid.UUID) ([]model.WaitlistEntry, error)
+	GetNextUserFromWaitlist(ctx context.Context, eventID uuid.UUID) (*model.WaitlistEntry, error)
+	IsUserOnWaitlist(ctx context.Context, eventID uuid.UUID, userID uuid.UUID) (bool, error)
 }
 
 type sqliteWaitlistRepository struct {
@@ -24,25 +26,26 @@ func NewWaitlistRepository(db *sql.DB) WaitlistRepository {
 	return &sqliteWaitlistRepository{db: db}
 }
 
-func (r *sqliteWaitlistRepository) AddUserToWaitlist(ctx context.Context, eventID int64, userID int64) (*model.WaitlistEntry, error) {
-	query := `
-		INSERT INTO waitlist_entries (event_id, user_id, created_at)
-		VALUES ($1, $2, $3)
-		RETURNING id, created_at
-	`
+func (r *sqliteWaitlistRepository) AddUserToWaitlist(ctx context.Context, eventID uuid.UUID, userID uuid.UUID) (*model.WaitlistEntry, error) {
 	entry := &model.WaitlistEntry{
+		Id:      uuid.New(),
 		EventID: eventID,
 		UserID:  userID,
 	}
+	query := `
+		INSERT INTO waitlist_entries (id, event_id, user_id, created_at)
+		VALUES ($1, $2, $3, $4)
+		RETURNING created_at
+	`
 	now := time.Now()
-	err := r.db.QueryRowContext(ctx, query, eventID, userID, now).Scan(&entry.Id, &entry.CreatedAt)
+	err := r.db.QueryRowContext(ctx, query, entry.Id, eventID, userID, now).Scan(&entry.CreatedAt)
 	if err != nil {
 		return nil, fmt.Errorf("failed to add user to waitlist: %w", err)
 	}
 	return entry, nil
 }
 
-func (r *sqliteWaitlistRepository) RemoveUserFromWaitlist(ctx context.Context, eventID int64, userID int64) error {
+func (r *sqliteWaitlistRepository) RemoveUserFromWaitlist(ctx context.Context, eventID uuid.UUID, userID uuid.UUID) error {
 	query := "DELETE FROM waitlist_entries WHERE event_id = $1 AND user_id = $2"
 	res, err := r.db.ExecContext(ctx, query, eventID, userID)
 	if err != nil {
@@ -58,7 +61,7 @@ func (r *sqliteWaitlistRepository) RemoveUserFromWaitlist(ctx context.Context, e
 	return nil
 }
 
-func (r *sqliteWaitlistRepository) GetWaitlistForEvent(ctx context.Context, eventID int64) ([]model.WaitlistEntry, error) {
+func (r *sqliteWaitlistRepository) GetWaitlistForEvent(ctx context.Context, eventID uuid.UUID) ([]model.WaitlistEntry, error) {
 	query := `
 		SELECT id, event_id, user_id, created_at
 		FROM waitlist_entries
@@ -85,7 +88,7 @@ func (r *sqliteWaitlistRepository) GetWaitlistForEvent(ctx context.Context, even
 	return entries, nil
 }
 
-func (r *sqliteWaitlistRepository) GetNextUserFromWaitlist(ctx context.Context, eventID int64) (*model.WaitlistEntry, error) {
+func (r *sqliteWaitlistRepository) GetNextUserFromWaitlist(ctx context.Context, eventID uuid.UUID) (*model.WaitlistEntry, error) {
 	query := `
 		SELECT id, event_id, user_id, created_at
 		FROM waitlist_entries
@@ -105,7 +108,7 @@ func (r *sqliteWaitlistRepository) GetNextUserFromWaitlist(ctx context.Context, 
 	return &entry, nil
 }
 
-func (r *sqliteWaitlistRepository) IsUserOnWaitlist(ctx context.Context, eventID int64, userID int64) (bool, error) {
+func (r *sqliteWaitlistRepository) IsUserOnWaitlist(ctx context.Context, eventID uuid.UUID, userID uuid.UUID) (bool, error) {
 	query := "SELECT EXISTS(SELECT 1 FROM waitlist_entries WHERE event_id = $1 AND user_id = $2)"
 	var exists bool
 	err := r.db.QueryRowContext(ctx, query, eventID, userID).Scan(&exists)
