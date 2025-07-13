@@ -7,14 +7,13 @@ import (
 )
 
 type Event struct {
-	Id            uuid.UUID `json:"id"`
-	Name          string    `binding:"required,min=5"`
-	Description   string    `binding:"required,min=10"`
-	Location      string    `binding:"required"`
-	Date          time.Time `binding:"required"`
-	Category      string    `binding:"required"`
-	UserIds       uuid.UUID `json:"user_id"`
-	AverageRating float64   `json:"average_rating,omitempty"`
-	Capacity      int       `json:"capacity,omitempty" binding:"gte=0"`
-	// RegisteredCount will be dynamically determined, not stored directly in DB or handled by simple binding.
+	Id            uuid.UUID  `json:"id"`
+	Name          *string    `json:"name,omitempty" binding:"omitempty,min=5"`
+	Description   *string    `json:"description,omitempty" binding:"omitempty,min=10"`
+	Location      *string    `json:"location,omitempty"`
+	Date          *time.Time `json:"date,omitempty"`
+	Category      *string    `json:"category,omitempty"`
+	UserIds       uuid.UUID  `json:"user_id"`
+	AverageRating float64    `json:"average_rating,omitempty"`
+	Capacity      *int       `json:"capacity,omitempty" binding:"omitempty,gte=0"`
 }

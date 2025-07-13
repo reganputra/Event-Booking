@@ -38,8 +38,8 @@ func NewEventService(eventRepository repository.EventRepository, waitlistService
 
 func (s *eventService) CreateEvent(ctx context.Context, event *model.Event) error {
 	// Default capacity to 0 if not provided or negative, unless binding already handles gte=0
-	if event.Capacity < 0 {
-		event.Capacity = 0
+	if event.Capacity != nil && *event.Capacity < 0 {
+		*event.Capacity = 0
 	}
 	return s.eventRepository.Save(ctx, event)
 }
@@ -62,11 +62,26 @@ func (s *eventService) UpdateEvent(ctx context.Context, event *model.Event, user
 		return errors.New("unauthorized: you don't have permission to update this event")
 	}
 	// Preserve existing capacity if not provided in update payload
-	if event.Capacity == 0 && existingEvent.Capacity > 0 { // Check if capacity is being explicitly set to 0 or just omitted
-
+	if event.Name != nil {
+		existingEvent.Name = event.Name
+	}
+	if event.Description != nil {
+		existingEvent.Description = event.Description
+	}
+	if event.Location != nil {
+		existingEvent.Location = event.Location
+	}
+	if event.Date != nil {
+		existingEvent.Date = event.Date
+	}
+	if event.Category != nil {
+		existingEvent.Category = event.Category
+	}
+	if event.Capacity != nil {
+		existingEvent.Capacity = event.Capacity
 	}
 
-	return s.eventRepository.Update(ctx, event)
+	return s.eventRepository.Update(ctx, existingEvent)
 }
 
 func (s *eventService) DeleteEvent(ctx context.Context, id uuid.UUID, userID uuid.UUID, userRole string) error {
@@ -98,14 +113,14 @@ func (s *eventService) RegisterForEvent(ctx context.Context, eventID, userID uui
 	}
 
 	// Check capacity if it's set (event.Capacity > 0)
-	if event.Capacity > 0 {
+	if event.Capacity != nil && *event.Capacity > 0 {
 		registrationCount, err := s.eventRepository.GetRegistrationCount(ctx, eventID)
 		if err != nil {
 			return fmt.Errorf("failed to get registration count: %w", err)
 		}
-		if registrationCount >= event.Capacity {
+		if registrationCount >= *event.Capacity {
 			// Event is full, try adding to waitlist via WaitlistService
-			log.Printf("Event %d is full. Attempting to add user %d to waitlist.", eventID, userID)
+			log.Printf("Event %s is full. Attempting to add user %s to waitlist.", eventID, userID)
 			_, wlErr := s.waitlistService.JoinWaitlist(ctx, eventID, userID)
 			if wlErr != nil {
 				log.Printf("Failed to add user %d to waitlist for event %d: %v", userID, eventID, wlErr)
@@ -132,7 +147,7 @@ func (s *eventService) CancelEventRegistration(ctx context.Context, eventID, use
 	}
 
 	// Determine if the event is currently at full capacity
-	isFull := event.Capacity > 0 && registrationCount >= event.Capacity
+	isFull := event.Capacity != nil && *event.Capacity > 0 && registrationCount >= *event.Capacity
 
 	// Cancel the registration
 	err = s.eventRepository.CancelRegistration(ctx, eventID, userID)

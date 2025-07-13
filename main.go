@@ -65,7 +65,7 @@ func main() {
 	protectedRoutes.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 	{
 		protectedRoutes.POST("/events", eventController.CreateEvent)
-		protectedRoutes.PUT("/events/:id", eventController.UpdateEvent)
+		protectedRoutes.PATCH("/events/:id", eventController.UpdateEvent)
 		protectedRoutes.DELETE("/events/:id", eventController.DeleteEvent)
 		protectedRoutes.POST("/events/:id/register", eventController.RegisterForEvent)
 		protectedRoutes.DELETE("/events/:id/register", eventController.CancelEventRegistration)
