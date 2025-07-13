@@ -13,12 +13,4 @@ type WaitlistEntry struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// You might also want to extend the Event model to include Capacity
-// If Event model is in a different file, ensure it's updated accordingly.
-// For example, in model/event.go:
-// type Event struct {
-//     ...
-//     Capacity          int       `json:"capacity" binding:"gte=0"` // Maximum number of attendees
-//     RegisteredCount   int       `json:"registered_count"` // Current number of registered attendees (calculated)
-//     ...
-// }
+// TODO feature: Extend the Event model to include a Capacity field
