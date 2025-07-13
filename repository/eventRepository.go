@@ -133,14 +133,48 @@ func (r *sqliteEventRepository) GetEventById(ctx context.Context, id uuid.UUID) 
 func (r *sqliteEventRepository) Update(ctx context.Context, event *model.Event) error {
 	// average_rating is not updated here, it's handled by UpdateAverageRating
 	// Include capacity in the UPDATE statement
-	updateQuery := "UPDATE events SET name = $1, description = $2, location = $3, dateTime = $4, category = $5, capacity = $6 WHERE id = $7"
-	stmt, err := r.db.PrepareContext(ctx, updateQuery)
-	if err != nil {
-		return err
-	}
-	defer stmt.Close()
+	query := "UPDATE events SET"
+	args := []interface{}{}
+	argId := 1
 
-	_, err = stmt.ExecContext(ctx, event.Name, event.Description, event.Location, event.Date, event.Category, event.Capacity, event.Id)
+	if event.Name != nil {
+		query += fmt.Sprintf(" name = $%d,", argId)
+		args = append(args, *event.Name)
+		argId++
+	}
+	if event.Description != nil {
+		query += fmt.Sprintf(" description = $%d,", argId)
+		args = append(args, *event.Description)
+		argId++
+	}
+	if event.Location != nil {
+		query += fmt.Sprintf(" location = $%d,", argId)
+		args = append(args, *event.Location)
+		argId++
+	}
+	if event.Date != nil {
+		query += fmt.Sprintf(" dateTime = $%d,", argId)
+		args = append(args, *event.Date)
+		argId++
+	}
+	if event.Category != nil {
+		query += fmt.Sprintf(" category = $%d,", argId)
+		args = append(args, *event.Category)
+		argId++
+	}
+	if event.Capacity != nil {
+		query += fmt.Sprintf(" capacity = $%d,", argId)
+		args = append(args, *event.Capacity)
+		argId++
+	}
+
+	// Remove trailing comma
+	query = query[:len(query)-1]
+
+	query += fmt.Sprintf(" WHERE id = $%d", argId)
+	args = append(args, event.Id)
+
+	_, err := r.db.ExecContext(ctx, query, args...)
 	if err != nil {
 		return err
 	}

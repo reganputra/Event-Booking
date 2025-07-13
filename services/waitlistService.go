@@ -53,7 +53,7 @@ func (s *waitlistService) JoinWaitlist(ctx context.Context, eventID uuid.UUID, u
 		return nil, ErrEventNotFound
 	}
 
-	if event.Capacity <= 0 {
+	if event.Capacity == nil || *event.Capacity <= 0 {
 		return nil, ErrWaitlistNotEnabled
 	}
 
@@ -63,7 +63,7 @@ func (s *waitlistService) JoinWaitlist(ctx context.Context, eventID uuid.UUID, u
 		return nil, fmt.Errorf("could not verify event registration count: %w", err)
 	}
 
-	if registeredCount < event.Capacity {
+	if registeredCount < *event.Capacity {
 		return nil, ErrEventNotFull
 	}
 
@@ -89,7 +89,7 @@ func (s *waitlistService) JoinWaitlist(ctx context.Context, eventID uuid.UUID, u
 }
 
 func (s *waitlistService) LeaveWaitlist(ctx context.Context, eventID uuid.UUID, userID uuid.UUID) error {
-	// Check if event exists (optional, FK constraint might cover it)
+	// Check if event exists
 	_, err := s.eventRepo.GetEventById(ctx, eventID)
 	if err != nil {
 		return ErrEventNotFound
@@ -114,7 +114,7 @@ func (s *waitlistService) GetWaitlistForEvent(ctx context.Context, eventID uuid.
 	return s.waitlistRepo.GetWaitlistForEvent(ctx, eventID)
 }
 
-// ProcessNextOnWaitlist is called when a spot opens up (e.g., someone cancels registration).
+// ProcessNextOnWaitlist is called when a spot opens up
 // This is a simplified version. A real system might:
 // - Actually register the user.
 // - Send a notification with a time limit to register.
@@ -132,37 +132,29 @@ func (s *waitlistService) ProcessNextOnWaitlist(ctx context.Context, eventID uui
 		return nil, nil // No one to process
 	}
 
-	// "Promote" the user: For now, this means removing them from waitlist and attempting to register them.
-	// In a more complex system, you'd notify them.
-
 	// Attempt to register the user directly.
 	// This assumes the spot is indeed free. A lock might be needed in high concurrency.
 	err = s.eventRepo.RegisterEvent(ctx, eventID, nextEntry.UserID)
 	if err != nil {
-		// This could happen if, by some race condition, the event filled up again,
-		// or the user got registered through another means.
+
 		log.Printf("Failed to auto-register user %d from waitlist for event %d: %v", nextEntry.UserID, eventID, err)
-		// Depending on policy, you might leave them on waitlist or try the next person.
-		// For now, we'll just log and indicate no user was successfully promoted.
 		return nil, fmt.Errorf("failed to register user from waitlist: %w", err)
 	}
 
 	// If registration was successful, remove them from the waitlist.
 	err = s.waitlistRepo.RemoveUserFromWaitlist(ctx, eventID, nextEntry.UserID)
 	if err != nil {
-		// This is problematic: they are registered but still on waitlist. Needs careful handling.
+
 		log.Printf("CRITICAL: User %d registered from waitlist for event %d but failed to remove from waitlist: %v", nextEntry.UserID, eventID, err)
-		// Return the user since they were registered, but this state is inconsistent.
+
 	}
 
 	log.Printf("User %d successfully registered from waitlist for event %d.", nextEntry.UserID, eventID)
 
-	promotedUser, userErr := s.userRepo.GetById(ctx, nextEntry.UserID) // Corrected method call
+	promotedUser, userErr := s.userRepo.GetById(ctx, nextEntry.UserID)
 	if userErr != nil {
 		log.Printf("Failed to fetch details for promoted user %d: %v", nextEntry.UserID, userErr)
-		// User was promoted, but we couldn't fetch their details.
-		// Return a placeholder or handle error as per requirements.
-		// For now, we'll return nil for the user object but no error for the promotion itself.
+
 		return nil, nil
 	}
 
