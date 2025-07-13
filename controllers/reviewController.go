@@ -8,9 +8,9 @@ import (
 	"go-rest-api/utils"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type ReviewController struct {
@@ -27,10 +27,10 @@ func (c *ReviewController) CreateReview(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found in context"})
 		return
 	}
-	userID := userIDVal.(int64)
+	userID := userIDVal.(uuid.UUID)
 
 	eventIDStr := ctx.Param("id")
-	eventID, err := strconv.ParseInt(eventIDStr, 10, 64)
+	eventID, err := uuid.Parse(eventIDStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID format"})
 		return
@@ -65,7 +65,7 @@ func (c *ReviewController) CreateReview(ctx *gin.Context) {
 
 func (c *ReviewController) GetReviewsForEvent(ctx *gin.Context) {
 	eventIDStr := ctx.Param("id")
-	eventID, err := strconv.ParseInt(eventIDStr, 10, 64)
+	eventID, err := uuid.Parse(eventIDStr)
 	if err != nil {
 		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid event ID format"})
 		return

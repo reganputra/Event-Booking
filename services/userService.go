@@ -5,15 +5,17 @@ import (
 	"go-rest-api/apperrors"
 	"go-rest-api/model"
 	"go-rest-api/repository"
+
+	"github.com/google/uuid"
 )
 
 type UserService interface {
 	CreateUser(ctx context.Context, user *model.User) error
 	ValidateUser(ctx context.Context, user *model.User) error
 	GetAllUsers(ctx context.Context) ([]model.User, error)
-	GetUserByID(ctx context.Context, id int64) (*model.User, error)
+	GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error)
 	UpdateUser(ctx context.Context, user *model.User) error
-	DeleteUser(ctx context.Context, id int64) error
+	DeleteUser(ctx context.Context, id uuid.UUID) error
 }
 
 type userService struct {
@@ -43,7 +45,7 @@ func (e *userService) GetAllUsers(ctx context.Context) ([]model.User, error) {
 	return e.userRepository.GetAll(ctx)
 }
 
-func (e *userService) GetUserByID(ctx context.Context, id int64) (*model.User, error) {
+func (e *userService) GetUserByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
 	// The repository now correctly returns apperrors.ErrNotFound.
 	return e.userRepository.GetById(ctx, id)
 }
@@ -58,7 +60,7 @@ func (e *userService) UpdateUser(ctx context.Context, user *model.User) error {
 	return e.userRepository.Update(ctx, user)
 }
 
-func (e *userService) DeleteUser(ctx context.Context, id int64) error {
+func (e *userService) DeleteUser(ctx context.Context, id uuid.UUID) error {
 	return e.userRepository.Delete(ctx, id)
 }
 

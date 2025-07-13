@@ -7,15 +7,17 @@ import (
 	"go-rest-api/apperrors"
 	"go-rest-api/model"
 	"go-rest-api/utils"
+
+	"github.com/google/uuid"
 )
 
 type UserRepository interface {
 	Create(ctx context.Context, user *model.User) error
 	Validate(ctx context.Context, user *model.User) error
 	GetAll(ctx context.Context) ([]model.User, error)
-	GetById(ctx context.Context, id int64) (*model.User, error) // This is the one needed by WaitlistService
+	GetById(ctx context.Context, id uuid.UUID) (*model.User, error)
 	Update(ctx context.Context, user *model.User) error
-	Delete(ctx context.Context, id int64) error
+	Delete(ctx context.Context, id uuid.UUID) error
 	GetByEmail(ctx context.Context, email string) (*model.User, error)
 }
 
@@ -32,16 +34,9 @@ func (s *userRepository) Create(ctx context.Context, u *model.User) error {
 		u.Role = "user"
 	}
 
-	query := "INSERT INTO users (email, password) VALUES ($1, $2) RETURNING id"
-	stmt, err := s.db.PrepareContext(ctx, query)
-	if err != nil {
-		return err
-	}
-
-	defer stmt.Close()
-
-	row := stmt.QueryRowContext(ctx, u.Email, utils.HashPassword(u.Password))
-	err = row.Scan(&u.Id)
+	u.Id = uuid.New()
+	query := "INSERT INTO users (id, email, password, role) VALUES ($1, $2, $3, $4)"
+	_, err := s.db.ExecContext(ctx, query, u.Id, u.Email, utils.HashPassword(u.Password), u.Role)
 	if err != nil {
 		// This is a simplified check. In a real-world application, you'd want to check for the specific database error code.
 		if err.Error() == "pq: duplicate key value violates unique constraint \"users_email_key\"" {
@@ -77,7 +72,7 @@ func (s *userRepository) GetAll(ctx context.Context) ([]model.User, error) {
 	return users, nil
 }
 
-func (s *userRepository) GetById(ctx context.Context, id int64) (*model.User, error) {
+func (s *userRepository) GetById(ctx context.Context, id uuid.UUID) (*model.User, error) {
 	query := "SELECT id, email, role FROM users WHERE id = $1"
 	row := s.db.QueryRowContext(ctx, query, id)
 
@@ -144,7 +139,7 @@ func (s *userRepository) Update(ctx context.Context, u *model.User) error {
 	return nil
 }
 
-func (s *userRepository) Delete(ctx context.Context, id int64) error {
+func (s *userRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	query := "DELETE FROM users WHERE id = $1"
 	stmt, err := s.db.PrepareContext(ctx, query)
 	if err != nil {

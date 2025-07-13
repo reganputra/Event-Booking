@@ -5,12 +5,14 @@ import (
 	"database/sql"
 	"fmt"
 	"go-rest-api/model"
+
+	"github.com/google/uuid"
 )
 
 type ReviewRepository interface {
 	SaveReview(ctx context.Context, review *model.Review) error
-	GetReviewsByEventID(ctx context.Context, eventID int64) ([]model.Review, error)
-	GetReviewByEventAndUser(ctx context.Context, eventID int64, userID int64) (*model.Review, error)
+	GetReviewsByEventID(ctx context.Context, eventID uuid.UUID) ([]model.Review, error)
+	GetReviewByEventAndUser(ctx context.Context, eventID uuid.UUID, userID uuid.UUID) (*model.Review, error)
 }
 
 type sqliteReviewRepository struct {
@@ -22,26 +24,20 @@ func NewReviewRepository(db *sql.DB) ReviewRepository {
 }
 
 func (r *sqliteReviewRepository) SaveReview(ctx context.Context, review *model.Review) error {
+	review.Id = uuid.New()
 	query := `
-		INSERT INTO reviews (event_id, user_id, rating, comment)
-		VALUES ($1, $2, $3, $4)
-		RETURNING id, created_at
+		INSERT INTO reviews (id, event_id, user_id, rating, comment)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING created_at
 	`
-	stmt, err := r.db.PrepareContext(ctx, query)
+	err := r.db.QueryRowContext(ctx, query, review.Id, review.EventID, review.UserID, review.Rating, review.Comment).Scan(&review.CreatedAt)
 	if err != nil {
-		return fmt.Errorf("failed to prepare statement for save review: %w", err)
-	}
-	defer stmt.Close()
-
-	err = stmt.QueryRowContext(ctx, review.EventID, review.UserID, review.Rating, review.Comment).Scan(&review.Id, &review.CreatedAt)
-	if err != nil {
-		// Consider checking for unique constraint violation error here if your DB driver supports it well
-		return fmt.Errorf("failed to execute statement and scan for save review: %w", err)
+		return fmt.Errorf("failed to execute statement for save review: %w", err)
 	}
 	return nil
 }
 
-func (r *sqliteReviewRepository) GetReviewsByEventID(ctx context.Context, eventID int64) ([]model.Review, error) {
+func (r *sqliteReviewRepository) GetReviewsByEventID(ctx context.Context, eventID uuid.UUID) ([]model.Review, error) {
 	query := `
 		SELECT id, event_id, user_id, rating, comment, created_at
 		FROM reviews
@@ -68,7 +64,7 @@ func (r *sqliteReviewRepository) GetReviewsByEventID(ctx context.Context, eventI
 	return reviews, nil
 }
 
-func (r *sqliteReviewRepository) GetReviewByEventAndUser(ctx context.Context, eventID int64, userID int64) (*model.Review, error) {
+func (r *sqliteReviewRepository) GetReviewByEventAndUser(ctx context.Context, eventID uuid.UUID, userID uuid.UUID) (*model.Review, error) {
 	query := `
 		SELECT id, event_id, user_id, rating, comment, created_at
 		FROM reviews

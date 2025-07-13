@@ -2,12 +2,14 @@ package model
 
 import (
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type WaitlistEntry struct {
-	Id        int64     `json:"id"`
-	EventID   int64     `json:"event_id" binding:"required"`
-	UserID    int64     `json:"user_id"` // Should be set from authenticated user
+	Id        uuid.UUID `json:"id"`
+	EventID   uuid.UUID `json:"event_id" binding:"required"`
+	UserID    uuid.UUID `json:"user_id"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
