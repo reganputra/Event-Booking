@@ -30,36 +30,14 @@ func NewReviewService(reviewRepo repository.ReviewRepository, eventRepo reposito
 }
 
 func (s *reviewService) CreateReview(ctx context.Context, review *model.Review, userID uuid.UUID) error {
-	// 1. Validate event exists (optional, could be FK constraint driven, but good for early feedback)
+	// Validate event exists
 	_, err := s.eventRepo.GetEventById(ctx, review.EventID)
 	if err != nil {
 		log.Printf("Error finding event %d for review: %v", review.EventID, err)
 		return errors.New("event not found")
 	}
 
-	// 2. Check if user is registered for the event (Simplified check here)
-	// A more robust check would involve looking at the registrations table.
-	// For this example, we'll assume if the event exists, they *could* review.
-	// This should be expanded based on actual registration logic.
-	// For now, we'll skip explicit registration check to keep it simpler,
-	// but in a real app, you'd query the registrations table.
-	// registeredEvents, err := s.eventRepo.GetRegisteredEventByUserId(ctx, userID)
-	// if err != nil {
-	// 	log.Printf("Error checking user %d registration: %v", userID, err)
-	// 	return errors.New("could not verify event registration")
-	// }
-	// found := false
-	// for _, e := range registeredEvents {
-	// 	if e.Id == review.EventID {
-	// 		found = true
-	// 		break
-	// 	}
-	// }
-	// if !found {
-	// 	return errors.New("user not registered for this event, cannot review")
-	// }
-
-	// 3. Check if the user has already reviewed this event
+	// Check if the user has already reviewed this event
 	existingReview, err := s.reviewRepo.GetReviewByEventAndUser(ctx, review.EventID, userID)
 	if err != nil {
 		// This is an actual error during DB query, not "not found"
@@ -106,7 +84,7 @@ func (s *reviewService) recalculateAndUpdateAverageRating(ctx context.Context, e
 	// Use a new background context for this self-contained task.
 	// This is crucial because the original context from the HTTP request
 	// might be cancelled if the client disconnects or the request times out,
-	// but we still want this background update to complete if possible.
+	// but still want this background update to complete if possible.
 	updateCtx := context.Background()
 
 	if len(reviews) == 0 {
@@ -122,9 +100,4 @@ func (s *reviewService) recalculateAndUpdateAverageRating(ctx context.Context, e
 	return s.eventRepo.UpdateAverageRating(updateCtx, eventID, averageRating)
 }
 
-// func (s *reviewService) CheckIfUserRegisteredForEvent(ctx context.Context, eventID int64, userID int64) (bool, error) {
-// This is a placeholder for a more direct check on the registrations table if available/needed.
-// For now, the logic is simplified in CreateReview.
-// You would typically have a method in EventRepository like `IsUserRegistered(eventID, userID)`
-// 	return true, nil // Placeholder
-// }
+// TODO: Implement this method if you want to check user registration status before allowing review creation.
