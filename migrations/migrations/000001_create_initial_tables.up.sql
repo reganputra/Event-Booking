@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS events (
                                       location TEXT NOT NULL,
                                       dateTime TIMESTAMP NOT NULL, -- Menggunakan TIMESTAMP untuk tanggal/waktu di PostgreSQL
                                       user_id INTEGER,
+                                      average_rating REAL DEFAULT 0, -- Add average_rating column
                                       FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
     );
 

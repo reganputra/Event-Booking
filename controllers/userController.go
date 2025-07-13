@@ -1,24 +1,27 @@
 package controllers
 
 import (
-	"database/sql"
 	"errors"
-	"github.com/gin-gonic/gin"
+	"go-rest-api/apperrors"
 	"go-rest-api/model"
 	"go-rest-api/response"
 	"go-rest-api/services"
 	"go-rest-api/utils"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
 )
 
 type UserController struct {
 	userService services.UserService
+	jwtSecret   string
 }
 
-func NewUserController(userService services.UserService) *UserController {
+func NewUserController(userService services.UserService, jwtSecret string) *UserController {
 	return &UserController{
 		userService: userService,
+		jwtSecret:   jwtSecret,
 	}
 }
 
@@ -26,14 +29,21 @@ func (u *UserController) RegisterUser(c *gin.Context) {
 	var user model.User
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
+		validationErrors := utils.GetValidationErrors(err)
+		if validationErrors != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"errors": validationErrors})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
 
 	err = u.userService.CreateUser(c, &user)
 	if err != nil {
-		if err.Error() == "email already registered" {
-			c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		if errors.Is(err, apperrors.ErrAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
+		} else if errors.Is(err, apperrors.ErrInvalidInput) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input: email and password are required"})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to register user"})
 		}
@@ -53,13 +63,22 @@ func (u *UserController) LoginUser(c *gin.Context) {
 	var user model.User
 	err := c.ShouldBindJSON(&user)
 	if err != nil {
+		validationErrors := utils.GetValidationErrors(err)
+		if validationErrors != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"errors": validationErrors})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
 
 	err = u.userService.ValidateUser(c, &user)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		if errors.Is(err, apperrors.ErrUnauthorized) || errors.Is(err, apperrors.ErrNotFound) {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to login"})
+		}
 		return
 	}
 	userResponse := response.UserResponse{
@@ -68,7 +87,7 @@ func (u *UserController) LoginUser(c *gin.Context) {
 		Role:  user.Role,
 	}
 
-	token, err := utils.GenerateToken(user.Email, user.Id, user.Role)
+	token, err := utils.GenerateToken(user.Email, user.Id, user.Role, u.jwtSecret)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
@@ -105,7 +124,7 @@ func (u *UserController) GetUserByID(c *gin.Context) {
 	}
 	user, err := u.userService.GetUserByID(c, id)
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) || err.Error() == "user not found" {
+		if errors.Is(err, apperrors.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve user"})
@@ -130,6 +149,11 @@ func (u *UserController) UpdateUser(c *gin.Context) {
 	var user model.User
 	err = c.ShouldBindJSON(&user)
 	if err != nil {
+		validationErrors := utils.GetValidationErrors(err)
+		if validationErrors != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"errors": validationErrors})
+			return
+		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
@@ -137,10 +161,12 @@ func (u *UserController) UpdateUser(c *gin.Context) {
 
 	err = u.userService.UpdateUser(c, &user)
 	if err != nil {
-		if err.Error() == "user not found" {
+		if errors.Is(err, apperrors.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
-		} else if err.Error() == "invalid role" {
+		} else if errors.Is(err, apperrors.ErrInvalidInput) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role"})
+		} else if errors.Is(err, apperrors.ErrAlreadyExists) {
+			c.JSON(http.StatusConflict, gin.H{"error": "Email already registered"})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update user"})
 		}
@@ -165,7 +191,7 @@ func (u *UserController) DeleteUser(c *gin.Context) {
 
 	err = u.userService.DeleteUser(c, id)
 	if err != nil {
-		if err.Error() == "user not found" || errors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, apperrors.ErrNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete user"})

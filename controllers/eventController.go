@@ -5,6 +5,7 @@ import (
 	"errors"
 	"go-rest-api/model"
 	"go-rest-api/services"
+	"go-rest-api/utils"
 	"log"
 	"net/http"
 	"strconv"
@@ -31,7 +32,12 @@ func (c *EventController) CreateEvent(ctx *gin.Context) {
 	var event model.Event
 	err := ctx.ShouldBindJSON(&event)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		validationErrors := utils.GetValidationErrors(err)
+		if validationErrors != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"errors": validationErrors})
+			return
+		}
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
 
@@ -52,6 +58,26 @@ func (c *EventController) GetAllEvents(ctx *gin.Context) {
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get events"})
 		return
 	}
+	ctx.JSON(http.StatusOK, events)
+}
+
+func (c *EventController) SearchEvents(ctx *gin.Context) {
+	keyword := ctx.Query("keyword")
+	startDate := ctx.Query("startDate") // Expected format: YYYY-MM-DD
+	endDate := ctx.Query("endDate")     // Expected format: YYYY-MM-DD
+
+	events, err := c.eventService.GetEventsByCriteria(ctx, keyword, startDate, endDate)
+	if err != nil {
+		log.Printf("Error searching events: %v", err)
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to search events"})
+		return
+	}
+
+	if len(events) == 0 {
+		ctx.JSON(http.StatusOK, gin.H{"message": "No events found matching your criteria", "events": []model.Event{}})
+		return
+	}
+
 	ctx.JSON(http.StatusOK, events)
 }
 
@@ -115,7 +141,12 @@ func (c *EventController) UpdateEvent(ctx *gin.Context) {
 	var event model.Event
 	err = ctx.ShouldBindJSON(&event)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Could not update event"})
+		validationErrors := utils.GetValidationErrors(err)
+		if validationErrors != nil {
+			ctx.JSON(http.StatusBadRequest, gin.H{"errors": validationErrors})
+			return
+		}
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
 		return
 	}
 
@@ -186,7 +217,17 @@ func (c *EventController) RegisterForEvent(ctx *gin.Context) {
 
 	err = c.eventService.RegisterForEvent(ctx, eventID, userID)
 	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to register for event"})
+		// Check for specific errors from the service, like "event is full, user added to waitlist"
+		if err.Error() == "event is full, user added to waitlist" {
+			ctx.JSON(http.StatusAccepted, gin.H{"message": err.Error()}) // 202 Accepted might be suitable
+		} else if errors.Is(err, services.ErrAlreadyRegistered) {
+			ctx.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+		} else if errors.Is(err, services.ErrEventNotFound) {
+			ctx.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		} else {
+			log.Printf("Error registering for event %d by user %d: %v", eventID, userID, err)
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to register for event"})
+		}
 		return
 	}
 

@@ -1,13 +1,14 @@
 package middleware
 
 import (
-	"github.com/gin-gonic/gin"
 	"go-rest-api/utils"
 	"net/http"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Get the Authorization header
 		authHeader := c.GetHeader("Authorization")
@@ -23,7 +24,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		// Validate the token
-		userId, role, err := utils.ValidateToken(token)
+		userId, role, err := utils.ValidateToken(token, jwtSecret)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
 			return
