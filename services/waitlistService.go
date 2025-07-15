@@ -147,8 +147,6 @@ func (s *waitlistService) ProcessNextOnWaitlist(ctx context.Context, eventID uui
 		return nil, nil // No one to process
 	}
 
-	// Attempt to register the user directly.
-	// This assumes the spot is indeed free. A lock might be needed in high concurrency.
 	err = s.eventRepo.RegisterEvent(ctx, eventID, nextEntry.UserID)
 	if err != nil {
 
@@ -173,7 +171,7 @@ func (s *waitlistService) ProcessNextOnWaitlist(ctx context.Context, eventID uui
 		return nil, nil
 	}
 
-	// Here you would typically send a notification.
+	//  send a notification.
 	// s.notificationService.SendWaitlistPromotionNotification(promotedUser, event)
 
 	return promotedUser, nil
