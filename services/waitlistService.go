@@ -7,6 +7,7 @@ import (
 	"go-rest-api/model"
 	"go-rest-api/repository"
 	"log"
+	"sync"
 
 	"github.com/google/uuid"
 )
@@ -30,6 +31,8 @@ type waitlistService struct {
 	eventRepo    repository.EventRepository
 	userRepo     repository.UserRepository // For fetching user details for notification (future)
 	// notificationService NotificationService // For actual notifications (future)
+	eventMutex map[uuid.UUID]*sync.Mutex
+	mapMutex   sync.RWMutex // Protects eventMutex map
 }
 
 func NewWaitlistService(
@@ -120,6 +123,18 @@ func (s *waitlistService) GetWaitlistForEvent(ctx context.Context, eventID uuid.
 // - Send a notification with a time limit to register.
 // - Handle cases where the next user is no longer interested.
 func (s *waitlistService) ProcessNextOnWaitlist(ctx context.Context, eventID uuid.UUID) (*model.User, error) {
+
+	s.mapMutex.Lock()
+	mu, ok := s.eventMutex[eventID]
+	if !ok {
+		mu = &sync.Mutex{}
+		s.eventMutex[eventID] = mu
+	}
+	s.mapMutex.Unlock()
+
+	mu.Lock()
+	defer mu.Unlock()
+
 	log.Printf("Processing next on waitlist for event ID %s", eventID)
 	nextEntry, err := s.waitlistRepo.GetNextUserFromWaitlist(ctx, eventID)
 	if err != nil {
