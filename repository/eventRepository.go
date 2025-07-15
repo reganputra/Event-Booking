@@ -70,20 +70,6 @@ func (r *sqliteEventRepository) IsUserRegistered(ctx context.Context, eventID uu
 func (r *sqliteEventRepository) GetAllEvents(ctx context.Context) ([]model.Event, error) {
 	log.Println("Getting all events from database")
 
-	schemaQuery := "SELECT column_name FROM information_schema.columns WHERE table_name = 'events' ORDER BY ordinal_position"
-	schemaRows, err := r.db.QueryContext(ctx, schemaQuery)
-	if err != nil {
-		log.Printf("Error querying schema: %v", err)
-	} else {
-		defer schemaRows.Close()
-		log.Println("Events table columns:")
-		var columnName string
-		for schemaRows.Next() {
-			schemaRows.Scan(&columnName)
-			log.Printf("- %s", columnName)
-		}
-	}
-
 	query := "SELECT id, name, description, location, dateTime, user_id, category, average_rating, capacity FROM events"
 	log.Printf("Executing query: %s", query)
 	rows, err := r.db.QueryContext(ctx, query)
