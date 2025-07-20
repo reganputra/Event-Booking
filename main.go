@@ -23,6 +23,8 @@ func main() {
 	helper.PanicIfError(err)
 	defer db.Close()
 
+	// Configure CORS
+
 	// --- Dependency Injection ---
 	// Initialize the repository
 	eventRepo := repository.NewEventRepository(db)
@@ -43,6 +45,9 @@ func main() {
 	waitlistController := controllers.NewWaitlistController(waitlistService, eventService) // Add WaitlistController
 
 	router := gin.Default()
+
+	// Use CORS middleware
+	router.Use(middleware.CORSMiddleware())
 
 	// Healthcheck endpoint to verify server status
 	router.GET("/healthcheck", func(c *gin.Context) {
